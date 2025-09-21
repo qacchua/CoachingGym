@@ -16,13 +16,13 @@ import myLogo from './assets/SiteLogo.png'; // <-- ADD THIS LINE
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyBjsFrHGLOHCq0P2X4wABg3ebc-yKeD7ZU",
-  authDomain: "coachq-eb00b.firebaseapp.com",
-  projectId: "coachq-eb00b",
-  storageBucket: "coachq-eb00b.firebasestorage.app",
-  messagingSenderId: "342571355410",
-  appId: "1:342571355410:web:0a52ecee54b6aab1eb77cb",
-  measurementId: "G-614K3ZNG0N"
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: "",
+  measurementId: ""
 };
 
 
