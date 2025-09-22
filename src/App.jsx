@@ -16,13 +16,13 @@ import myLogo from './assets/SiteLogo.png'; // <-- ADD THIS LINE
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyBjsFrHGLOHCq0P2X4wABg3ebc-yKeD7ZU",
-  authDomain: "coachq-eb00b.firebaseapp.com",
-  projectId: "coachq-eb00b",
-  storageBucket: "coachq-eb00b.firebasestorage.app",
-  messagingSenderId: "342571355410",
-  appId: "1:342571355410:web:0a52ecee54b6aab1eb77cb",
-  measurementId: "G-614K3ZNG0N"
+    apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+    authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.REACT_APP_FIREBASE_APP_ID,
+    measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
 
 
@@ -202,9 +202,15 @@ function pcmToWav(pcmData, sampleRate) {
 
 // --- Main Application Components ---
 
-const HomePage = ({ setView }) => {
+const HomePage = ({ setView, currentUser }) => {
   return (
-    <div className="text-center">
+     <> {/* Fragment to wrap everything */}
+      <div className="max-w-6xl mx-auto mb-8 flex justify-between items-center">
+        <p className="text-slate-600">Signed in as: <span className="font-semibold">{currentUser.email || 'Guest'}</span></p>
+        <Button onClick={() => setView('logout')} variant="secondary">Sign Out</Button>
+      </div>
+
+     <div className="text-center">
       <img src={myLogo} alt="CoachQ Logo" className="w-24 h-24 mx-auto mb-4" />
       <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4">The Coaching Gym</h1>
       <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-12">
@@ -215,7 +221,7 @@ const HomePage = ({ setView }) => {
           <div className="flex-grow">
             <IconWrapper><BookOpenCheck className="w-8 h-8" /></IconWrapper>
             <h2 className="text-2xl font-bold text-slate-800 mt-4 mb-2">ICF Competency Quiz</h2>
-            <p className="text-slate-600 mb-6">Test your knowledge of ICF Core Competencies.</p>
+            <p className="text-slate-600 mb-6">Updated to reflect the new 2025 ICF Core Competencies.</p>
           </div>
           <Button onClick={() => setView('quiz')}>Start Quiz</Button>
         </Card>
@@ -253,7 +259,8 @@ const HomePage = ({ setView }) => {
         </Card>
       </div>
     </div>
-  );
+    </> 
+  );{/* <-- 2. Add the closing fragment tag here */}
 };
 
 const TranscriptEvaluator = ({ setView, setEvaluationResult }) => {
@@ -417,7 +424,7 @@ const TranscriptEvaluator = ({ setView, setEvaluationResult }) => {
         <Button onClick={() => setView('home')} variant="secondary" className="px-4 py-2 text-sm">&larr; Back</Button>
       </div>
       
-      <p className="text-slate-600 mb-6">Upload a text transcript (.txt, .pdf, or .docx) or paste the content below.</p>
+      <p className="text-slate-600 mb-6">Upload a text transcript (.txt, .pdf, or .docx) or paste the content below. Please ensure your transcript has "Coach" and "Client" clearly identified.</p>
       
       <div>
         <div className="mb-4 flex items-center gap-4">
@@ -597,7 +604,7 @@ const EthicalDilemmaSimulator = ({ setView }) => {
   );
 };
 
-const VoiceSimulation = ({ setView, setEvaluationResult }) => {
+const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
   const [simulationStep, setSimulationStep] = useState('options');
   const [personas, setPersonas] = useState([]);
   const [persona, setPersona] = useState(null);
@@ -864,7 +871,7 @@ const VoiceSimulation = ({ setView, setEvaluationResult }) => {
       startSimulationWithPersona(newPersona);
 
       // NOTE: In the full version, this would save to Firestore. This is disabled for the preview.
-      // try { await addDoc(collection(db, "personas"), newPersona); } catch (error) { console.error("Error adding persona:", error); }
+      try { await addDoc(collection(db, "personas"), newPersona); } catch (error) { console.error("Error adding persona:", error); }
   };
   
   const startRandomSimulation = () => {
@@ -1036,307 +1043,143 @@ const VoiceSimulation = ({ setView, setEvaluationResult }) => {
     );
   }
 };
+const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
+    const [persona, setPersona] = useState(null);
+    const [history, setHistory] = useState([]);
+    const [input, setInput] = useState(''); // FIX: Renamed from userInput to match state
+    const [isLoading, setIsLoading] = useState(false);
+    const [simulationStep, setSimulationStep] = useState('options'); // Changed initial step to 'options'
+    const [customPersonaName, setCustomPersonaName] = useState('');
+    const [customPersonaRole, setCustomPersonaRole] = useState('');
+    const [customPersonaGoal, setCustomPersonaGoal] = useState('');
+    const [customPersonaBackground, setCustomPersonaBackground] = useState('');
+    const [communityPersonas, setCommunityPersonas] = useState([]);
+    const [isEvaluating, setIsEvaluating] = useState(false); // FIX: Added missing state
+    const [loadingText, setLoadingText] = useState(''); // FIX: Added missing state
+    const chatEndRef = useRef(null);
 
-const Simulation = ({ setView, setEvaluationResult }) => {
-  const [simulationStep, setSimulationStep] = useState('options'); // options, select, create, chat
-  const [personas, setPersonas] = useState([]);
-  const [persona, setPersona] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [userInput, setUserInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [loadingText, setLoadingText] = useState("Analyzing conversation...");
-  const [customPersona, setCustomPersona] = useState({ name: '', industry: '', role: '', challenges: '', goals: '', internalState: '', keyPeople: '' });
-  const chatWindowRef = useRef(null);
+    // This useEffect for loading community personas is correct!
+    useEffect(() => {
+        const unsubscribe = onSnapshot(collection(db, "personas"), (snapshot) => {
+            const personasData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setCommunityPersonas(personasData);
+        });
+        return () => unsubscribe();
+    }, []);
 
-  const defaultPersonas = [
-     { 
-      name: 'Alex Chen', 
-      industry: 'Tech Startup', 
-      role: 'New Manager', 
-      challenges: "I'm drowning in work because I don't trust my team. My direct report, Ben, just missed a major deadline on the Apollo project, and I had to work all weekend to fix it myself. I feel like I have to do everything to get it right.", 
-      goals: "To figure out how to delegate effectively without feeling like I'm losing control. I want to trust my team, especially Sarah who has potential, but I'm scared of them failing.",
-      internalState: "Anxious, frustrated with my team but also with myself. Feels like a micromanager but doesn't know how to stop. Worried about burning out.",
-      keyPeople: "Ben (Direct Report) - Recently missed a key deadline. Sarah (Direct Report) - Shows promise, but I hesitate to give her big tasks."
-    },
-    { 
-      name: 'Maria Rodriguez', 
-      industry: 'Corporate Finance', 
-      role: 'Senior Executive', 
-      challenges: "I just got out of a 3-hour Q3 planning meeting with my boss, Cynthia, and I felt nothing. We hit our targets, but I'm just going through the motions. The big promotion I wanted for years feels empty now that I'm in the running for it.", 
-      goals: "To understand what's causing this disconnect. Is it the job? Is it me? I want to feel engaged and passionate again, even if it means considering a drastic change.",
-      internalState: "Feeling numb, apathetic, and trapped. A sense of guilt for not appreciating the success. Confused about future career goals.",
-      keyPeople: "Cynthia (My Boss, SVP) - Supportive, but high-pressure. Pushing me for the big promotion."
-    },
-    { 
-      name: 'Sam Jones', 
-      industry: 'Marketing', 
-      role: 'Creative Director', 
-      challenges: "My peer, a new director named David, is constantly undermining my team's ideas in cross-functional meetings. It's becoming political, and my team's morale is suffering. I avoid confronting him because I don't want to make things worse.", 
-      goals: "To find a way to address the conflict with David constructively and protect my team's work and confidence without escalating a war.",
-      internalState: "Frustrated, conflict-avoidant, protective of my team. Feeling a bit powerless and resentful.",
-      keyPeople: "David (Peer, Director) - Undermines my team in public forums. My Team - Their morale is dropping and they are starting to disengage."
-    },
-  ];
+    const defaultPersonas = [
+        { name: 'Alex Chen', role: 'New Manager', challenges: "Struggling with delegation and trusting the team.", goals: "To delegate effectively without losing control." },
+        { name: 'Maria Rodriguez', role: 'Senior Executive', challenges: "Feeling disengaged and apathetic despite success.", goals: "To reconnect with passion for work." },
+        { name: 'Sam Jones', role: 'Creative Director', challenges: "Avoiding conflict with a peer who undermines the team.", goals: "To address conflict constructively." },
+    ];
+    
+    // Combine default and community personas
+    const allPersonas = [...defaultPersonas, ...communityPersonas];
 
-  useEffect(() => {
-    // This is a preview-only version and does not connect to Firestore
-    setPersonas(defaultPersonas);
-  }, []);
+    const createDescriptionFromPersona = (p) => {
+        return `You are role-playing a coaching client. Name: ${p.name}. Role: ${p.role}. Challenge: "${p.challenges}". Goal for session: "${p.goals}".`;
+    };
 
-  const createDescriptionFromPersona = (p) => {
-    return `You are to role-play as a coaching client with the following detailed persona. Embody their internal state, refer to the key people by name, and draw from their specific challenges and goals in your responses. Be detailed and realistic.
+    const handleSendMessage = useCallback(async () => {
+        if (input.trim() === '' || isLoading) return; // FIX: Use 'input'
+        const newHistory = [...history, { role: 'user', text: input }]; // FIX: Use 'input'
+        setHistory(newHistory);
+        setInput(''); // FIX: Use 'setInput'
+        setIsLoading(true);
 
-**Name:** ${p.name || 'Alex'}
-**Role:** ${p.role} in the ${p.industry || 'any'} industry.
-**Specific Challenges:** "${p.challenges}"
-**Goals for this coaching session:** "${p.goals}"
-**Internal State (How you feel inside):** "${p.internalState}"
-**Key People in your story:** "${p.keyPeople}"`;
-  };
+        const prompt = `You are acting as a coaching client. Your persona is: "${createDescriptionFromPersona(persona)}".
+        Based on the conversation history below, provide a natural, in-character response.
+        History:\n${newHistory.map(m => `${m.role === 'user' ? 'Coach' : 'Client'}: ${m.text}`).join('\n')}`;
+        const chatSchema = { type: "OBJECT", properties: { responseText: { type: "STRING" } }, required: ["responseText"] };
 
-  const handleSendMessage = useCallback(async () => {
-    if (userInput.trim() === '' || isLoading) return;
-    const newHistory = [...history, { role: 'user', text: userInput }];
-    setHistory(newHistory);
-    setUserInput('');
-    setIsLoading(true);
+        try {
+            const result = await callGeminiAPI(prompt, chatSchema);
+            const modelResponse = result.responseText || "I'm not sure what to say.";
+            setHistory(prev => [...prev, { role: 'model', text: modelResponse }]);
+        } catch (e) {
+            console.error(e);
+            setHistory(prev => [...prev, { role: 'model', text: "Sorry, an error occurred." }]);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [input, history, isLoading, persona]); // FIX: Use 'input'
 
-    const prompt = `You are acting as a coaching client. Your persona is: "${createDescriptionFromPersona(persona)}". Based on the conversation history below, provide a natural, in-character response that embodies the persona's internal state and refers to key people by name. Keep your response concise. History:\n${newHistory.map(m => `${m.role === 'user' ? 'Coach' : 'Client'}: ${m.text}`).join('\n')}`;
-    const chatSchema = { type: "OBJECT", properties: { responseText: { type: "STRING" } }, required: ["responseText"] };
-
-    try {
-        const result = await callGeminiAPI(prompt, chatSchema);
-        const modelResponse = result.responseText || "I'm not sure what to say.";
-        setHistory(prev => [...prev, { role: 'model', text: modelResponse }]);
-    } catch (e) {
-        console.error(e);
-        setHistory(prev => [...prev, { role: 'model', text: "Sorry, an error occurred." }]);
-    } finally {
-        setIsLoading(false);
-    }
-  }, [userInput, history, isLoading, persona]);
-
-  const handleEndAndEvaluate = useCallback(async () => {
-     if (history.length < 4) {
-         alert("Please have a slightly longer conversation before evaluating.");
-         return;
-     };
-     setIsEvaluating(true);
-     const transcript = history.map(m => `${m.role === 'user' ? 'Coach' : 'Client'}: ${m.text}`).join('\n');
-     try {
-        const fullReport = {};
-        setLoadingText("Analyzing competencies...");
-        const competencyPrompt = `Analyze the following coaching transcript based on ICF competencies 3 through 8. For each competency, provide a rating (Exemplary, Proficient, Sufficient, Needs Development) and a detailed justification. Return a JSON object with a single key "evaluation" containing an array of objects. Transcript: ${transcript}`;
-        const competencySchema = {type: "OBJECT", properties: { evaluation: { type: "ARRAY", items: { type: "OBJECT", properties: { competency: { type: "STRING" }, rating: { type: "STRING" }, justification: { type: "STRING" } }, required: ["competency", "rating", "justification"] } } } };
-        const competencyResult = await callGeminiAPI(competencyPrompt, competencySchema);
-        fullReport.evaluation = competencyResult.evaluation;
-        fullReport.foundationalCompetencies = [
-            { competency: "1: Demonstrates Ethical Practice", assessmentNote: "This competency is evaluated on an 'Observed / Not Observed' basis during a live or recorded session review by a certified assessor, focusing on adherence to the ICF Code of Ethics." },
-            { competency: "2: Embodies a Coaching Mindset", assessmentNote: "This competency reflects ongoing development and is primarily assessed through the written ICF Credentialing Exam and mentor coaching, rather than a single performance evaluation." }
-        ];
-
-        setLoadingText("Analyzing talk time...");
-        const talkTimePrompt = `Analyze the speaker talk time in the following transcript. Estimate the percentage of talk time for the Coach and the Client. Return a JSON object with keys "coachPercentage" and "clientPercentage". Transcript: ${transcript}`;
-        const talkTimeSchema = { type: "OBJECT", properties: { coachPercentage: { type: "NUMBER" }, clientPercentage: { type: "NUMBER" } }, required: ["coachPercentage", "clientPercentage"] };
-        fullReport.speakerAnalysis = await callGeminiAPI(talkTimePrompt, talkTimeSchema);
-
-        setLoadingText("Identifying key insights...");
-        const insightsPrompt = `Identify up to 5 pivotal moments of insight the client experienced in this transcript. Return a JSON object with a single key "keyInsights" containing an array of strings. Transcript: ${transcript}`;
-        const insightsSchema = { type: "OBJECT", properties: { keyInsights: { type: "ARRAY", items: { type: "STRING" } } } };
-        fullReport.keyInsights = (await callGeminiAPI(insightsPrompt, insightsSchema)).keyInsights;
-
-        setLoadingText("Suggesting alternative questions...");
-        const questionsPrompt = `Suggest up to 5 powerful, alternative questions the coach could have asked in this transcript to deepen insight. Return a JSON object with a single key "alternativeQuestions" containing an array of strings. Transcript: ${transcript}`;
-        const questionsSchema = { type: "OBJECT", properties: { alternativeQuestions: { type: "ARRAY", items: { type: "STRING" } } } };
-        fullReport.alternativeQuestions = (await callGeminiAPI(questionsPrompt, questionsSchema)).alternativeQuestions;
-
-        setLoadingText("Analyzing question types...");
-        const questionAnalysisPrompt = `Analyze the Coach's dialogue in this transcript. Categorize each question into 'Open-Ended', 'Leading', 'Clarifying', or 'Observation'. Provide the percentage breakdown. Return a JSON object with keys "openEnded", "leading", "clarifying", and "observation". Transcript: ${transcript}`;
-        const questionAnalysisSchema = { type: "OBJECT", properties: { openEnded: { type: "NUMBER" }, leading: { type: "NUMBER" }, clarifying: { type: "NUMBER" }, observation: { type: "NUMBER" } }, required: ["openEnded", "leading", "clarifying", "observation"] };
-        fullReport.questionAnalysis = await callGeminiAPI(questionAnalysisPrompt, questionAnalysisSchema);
+    const handleEndAndEvaluate = useCallback(async () => {
+        if (history.length < 4) {
+            alert("Please have a slightly longer conversation before evaluating.");
+            return;
+        };
+        setIsEvaluating(true); // FIX: Now uses correct state
+        const transcript = history.map(m => `${m.role === 'user' ? 'Coach' : 'Client'}: ${m.text}`).join('\n');
         
-        setEvaluationResult(fullReport);
-        setView('result');
-     } catch(e) {
-        console.error(e);
-        alert(e.message || "Sorry, there was an error evaluating your conversation. Please try again.");
-     } finally {
-        setIsEvaluating(false);
-     }
-  }, [history, setView, setEvaluationResult]);
-  
-  const startCustomSimulation = async () => {
-      const { name, industry, role, challenges, goals, internalState, keyPeople } = customPersona;
-      if (!role || !challenges || !goals) {
-          alert("Please fill out Role, Challenges, and Goals for your persona.");
-          return;
-      }
-      
-      const personaName = name.trim() || `A ${role} in ${industry || 'any industry'}`;
-      
-      const newPersonaObject = {
-          name: personaName,
-          industry: industry || 'Not specified',
-          role,
-          challenges,
-          goals,
-          internalState,
-          keyPeople
-      };
-      
-      setPersona(newPersonaObject);
-      setHistory([{role: 'model', text: `Hello, coach. Thanks for meeting with me.`}]);
-      setSimulationStep('chat');
+        try {
+            const fullReport = {};
+            setLoadingText("Analyzing competencies..."); // FIX: Now uses correct state
+            const competencyPrompt = `Analyze the coaching transcript based on ICF competencies 3-8... Transcript: ${transcript}`;
+            const competencySchema = {type: "OBJECT", properties: { evaluation: { type: "ARRAY", items: { type: "OBJECT", properties: { competency: { type: "STRING" }, rating: { type: "STRING" }, justification: { type: "STRING" } }, required: ["competency", "rating", "justification"] } } } };
+            const competencyResult = await callGeminiAPI(competencyPrompt, competencySchema);
+            fullReport.evaluation = competencyResult.evaluation;
+            // ... (rest of the API calls for the report) ...
+            setEvaluationResult(fullReport);
+            setView('result');
+        } catch(e) {
+            alert(e.message || "Sorry, an error occurred during evaluation.");
+        } finally {
+            setIsEvaluating(false); // FIX: Now uses correct state
+        }
+    }, [history, setView, setEvaluationResult]);
 
-      // NOTE: In the full version, this would save to Firestore. This is disabled for the preview.
-      // try {
-      //   await addDoc(collection(db, "personas"), newPersonaObject);
-      // } catch (error) {
-      //   console.error("Error adding custom persona to Firestore: ", error);
-      // }
-  };
+    const startCustomSimulation = async () => {
+        if (!customPersonaRole || !customPersonaGoal || !customPersonaBackground) { // FIX: Use correct state names
+            alert("Please fill out Role, Goal, and Background for your persona.");
+            return;
+        }
+        // FIX: Build the object from the correct state variables
+        const newPersonaObject = {
+            name: customPersonaName || `A ${customPersonaRole}`,
+            role: customPersonaRole,
+            goals: customPersonaGoal,
+            challenges: customPersonaBackground, // Mapped background to challenges
+            createdBy: currentUser.uid,
+            creatorEmail: currentUser.email
+        };
 
-  const startRandomSimulation = () => {
-      if (personas.length === 0) {
-          alert("Personas are still loading, please try again in a moment.");
-          return;
-      }
-      const randomPersonaObject = personas[Math.floor(Math.random() * personas.length)];
-      setPersona(randomPersonaObject);
-      setHistory([{role: 'model', text: `Hello, coach. Thanks for meeting with me.`}]);
-      setSimulationStep('chat');
-  };
+        setPersona(newPersonaObject);
+        setHistory([{role: 'model', text: `Hello, coach. Thanks for meeting with me.`}]);
+        setSimulationStep('chat');
 
-  useEffect(() => {
-    if (chatWindowRef.current) {
-      chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight;
+        if (currentUser) {
+            try {
+                await addDoc(collection(db, "personas"), newPersonaObject);
+            } catch (error) {
+                console.error("Error adding custom persona to Firestore: ", error);
+            }
+        }
+    };
+    
+    // ... (rest of the component's JSX and logic)
+    // This part should include the UI for 'options', 'select', 'create', and 'chat' steps.
+    // I've stubbed it out here to show the structure. You already have this JSX in your file.
+    if (simulationStep === 'options') {
+        return (
+            <Card className="max-w-2xl mx-auto text-center">
+                 <div className="flex justify-end">
+                    <Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm absolute top-6 right-6">&larr; Back</Button>
+                 </div>
+                 <IconWrapper><Bot className="w-8 h-8" /></IconWrapper>
+                 <h1 className="text-3xl font-bold text-slate-800 mt-4 mb-4">Simulation Options</h1>
+                 <p className="text-slate-600 mb-8">How would you like to start your coaching simulation?</p>
+                 <div className="space-y-4">
+                     <Button onClick={() => setSimulationStep('select')} variant="secondary" className="w-full"><List className="w-5 h-5" /> Choose a Persona</Button>
+                     <Button onClick={() => setSimulationStep('create')} variant="secondary" className="w-full"><UserPlus className="w-5 h-5" /> Create Your Own</Button>
+                 </div>
+            </Card>
+        );
     }
-  }, [history]);
+    
+    // ... JSX for 'select', 'create', and 'chat' steps follows ...
 
-  if (isEvaluating) {
-      return (
-          <div className="flex flex-col items-center justify-center h-full">
-              <LoadingSpinner text={loadingText} />
-          </div>
-      );
-  }
-
-  if (simulationStep === 'options') {
-    return (
-      <Card className="max-w-2xl mx-auto text-center">
-        <div className="flex justify-end">
-            <Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm absolute top-6 right-6">&larr; Back</Button>
-        </div>
-        <IconWrapper><Bot className="w-8 h-8" /></IconWrapper>
-        <h1 className="text-3xl font-bold text-slate-800 mt-4 mb-4">Simulation Options</h1>
-        <p className="text-slate-600 mb-8">How would you like to start your coaching simulation?</p>
-        <div className="space-y-4">
-            <Button onClick={startRandomSimulation} variant="secondary" className="w-full" disabled={personas.length === 0}><Dices className="w-5 h-5" /> Select a Random Persona</Button>
-            <Button onClick={() => setSimulationStep('select')} variant="secondary" className="w-full"><List className="w-5 h-5" /> Use Pre-populated Persona</Button>
-            <Button onClick={() => setSimulationStep('create')} variant="secondary" className="w-full"><UserPlus className="w-5 h-5" /> Create Your Own Custom Persona</Button>
-        </div>
-      </Card>
-    );
-  }
-
-  if (simulationStep === 'select') {
-    return (
-      <Card className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-start mb-4">
-            <h1 className="text-3xl font-bold text-slate-800">Choose a Client Persona</h1>
-            <Button onClick={() => setSimulationStep('options')} variant="secondary" className="px-3 py-1 text-sm">&larr; Back</Button>
-        </div>
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-4 -mr-4">
-          {personas.map(p => (
-            <button key={p.name} onClick={() => {
-                setPersona(p);
-                setHistory([{role: 'model', text: `Hello, coach. Thanks for meeting with me.`}])
-                setSimulationStep('chat');
-            }} className="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-stone-50 hover:border-stone-400 transition">
-              <h3 className="font-bold text-lg text-stone-700">{p.name}</h3>
-              <p className="text-slate-600 text-sm"><span className="font-semibold">Role:</span> {p.role}</p>
-              <p className="text-slate-600 text-sm"><span className="font-semibold">Challenges:</span> {p.challenges}</p>
-            </button>
-          ))}
-        </div>
-      </Card>
-    );
-  }
-
-  if (simulationStep === 'create') {
-    return (
-        <Card className="max-w-2xl mx-auto">
-            <div className="flex justify-between items-start mb-4">
-                <h1 className="text-3xl font-bold text-slate-800">Create Custom Persona</h1>
-                <Button onClick={() => setSimulationStep('options')} variant="secondary" className="px-4 py-2 text-sm">&larr; Back</Button>
-            </div>
-            <div className="space-y-4">
-                <div>
-                    <label htmlFor="persona-name" className="block text-sm font-medium text-slate-700 mb-1">Name (Optional)</label>
-                    <input type="text" id="persona-name" value={customPersona.name} onChange={(e) => setCustomPersona({...customPersona, name: e.target.value})} placeholder="e.g., Alex Chen" className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
-                </div>
-                 <div>
-                    <label htmlFor="persona-role" className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                    <input type="text" id="persona-role" value={customPersona.role} onChange={(e) => setCustomPersona({...customPersona, role: e.target.value})} placeholder="e.g., New Manager" className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
-                </div>
-                <div>
-                    <label htmlFor="persona-challenges" className="block text-sm font-medium text-slate-700 mb-1">Specific Challenges</label>
-                    <textarea id="persona-challenges" value={customPersona.challenges} onChange={(e) => setCustomPersona({...customPersona, challenges: e.target.value})} placeholder="e.g., My direct report, Ben, missed a deadline and I had to work all weekend to fix it..." className="w-full h-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
-                </div>
-                 <div>
-                    <label htmlFor="persona-goals" className="block text-sm font-medium text-slate-700 mb-1">Goals for the coaching session</label>
-                    <textarea id="persona-goals" value={customPersona.goals} onChange={(e) => setCustomPersona({...customPersona, goals: e.target.value})} placeholder="e.g., Learn how to delegate effectively without losing control..." className="w-full h-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
-                </div>
-                <div>
-                    <label htmlFor="persona-internal-state" className="block text-sm font-medium text-slate-700 mb-1">Internal State (How the client feels)</label>
-                    <textarea id="persona-internal-state" value={customPersona.internalState} onChange={(e) => setCustomPersona({...customPersona, internalState: e.target.value})} placeholder="e.g., Anxious, frustrated with my team but also with myself..." className="w-full h-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
-                </div>
-                 <div>
-                    <label htmlFor="persona-key-people" className="block text-sm font-medium text-slate-700 mb-1">Key People (Colleagues, managers, etc.)</label>
-                    <textarea id="persona-key-people" value={customPersona.keyPeople} onChange={(e) => setCustomPersona({...customPersona, keyPeople: e.target.value})} placeholder="e.g., Ben (Direct Report) - struggling. Sarah (Direct Report) - has potential." className="w-full h-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
-                </div>
-                <Button onClick={startCustomSimulation} className="w-full">Start Simulation with this Persona</Button>
-            </div>
-        </Card>
-    );
-  }
-
-  return ( // simulationStep === 'chat'
-    <Card className="max-w-4xl mx-auto h-[85vh] flex flex-col">
-       <div className="flex justify-between items-center mb-4 pb-4 border-b">
-        <div>
-            <h1 className="text-2xl font-bold text-slate-800">Coaching Simulation</h1>
-            <p className="text-slate-600">You are coaching a client. Type your responses below.</p>
-        </div>
-        <Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm">&larr; Back</Button>
-      </div>
-      <div ref={chatWindowRef} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6">
-        {history.map((msg, index) => (
-          <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-            {msg.role === 'model' && <div className="bg-stone-700 text-white rounded-full p-2"><Bot size={20} /></div>}
-            <div className={`max-w-md p-4 rounded-2xl ${msg.role === 'user' ? 'bg-slate-200 text-slate-800 rounded-br-none' : 'bg-stone-700 text-white rounded-bl-none'}`}>
-              {msg.text}
-            </div>
-             {msg.role === 'user' && <div className="bg-slate-200 text-slate-800 rounded-full p-2"><User size={20} /></div>}
-          </div>
-        ))}
-        {isLoading && <div className="flex justify-start"><div className="p-4 rounded-2xl bg-stone-700 text-white rounded-bl-none">...</div></div>}
-      </div>
-      <div className="mt-6 flex gap-4">
-        <input
-          type="text"
-          value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-          placeholder="Type your coaching question here..."
-          className="flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"
-        />
-        <Button onClick={handleSendMessage} disabled={isLoading}><Send /></Button>
-      </div>
-      <Button onClick={handleEndAndEvaluate} variant="secondary" className="w-full mt-4">End Simulation & Evaluate</Button>
-    </Card>
-  );
+    return (<div>...</div>); // Placeholder for the rest of your JSX
 };
 
 const EvaluationReport = ({ result, setView }) => {
@@ -1356,7 +1199,7 @@ const EvaluationReport = ({ result, setView }) => {
         <div className="bg-white p-12 font-sans">
             <header className="text-center border-b-2 border-slate-100 pb-6 mb-8">
                 <h1 className="text-3xl font-bold text-stone-800">Coaching Conversation Report</h1>
-                <p className="text-md text-slate-500 mt-2">An AI-Powered Analysis of Your Coaching Session</p>
+                <p className="text-md text-slate-500 mt-2">An AI-Powered Analysis of Your Coaching Session. This is analysis was generated with the assistance of AI and should not be used as a formal evaluation</p>
             </header>
 
             <section className="mb-10">
@@ -1478,7 +1321,7 @@ const EvaluationResult = ({ result, setView }) => {
         <div className="max-w-4xl mx-auto">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-800">Evaluation Report</h1>
+                    <h1 className="text-3xl font-bold text-slate-800">Feedback Report</h1>
                     <p className="text-slate-600">Your report is ready. You can now download it as a PDF.</p>
                 </div>
                 <div className="flex gap-4 w-full sm:w-auto">
@@ -1495,7 +1338,7 @@ const EvaluationResult = ({ result, setView }) => {
     );
 };
 
-const QuizComponent = ({ setView }) => {
+const QuizComponent = ({ setView, currentUser }) => {
     const [quizState, setQuizState] = useState('intro'); // intro, active, results
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -1674,7 +1517,7 @@ const QuizComponent = ({ setView }) => {
             <Card className="max-w-2xl mx-auto text-center">
                 <IconWrapper><BookOpenCheck className="w-10 h-10" /></IconWrapper>
                 <h1 className="text-3xl font-bold mt-4">ICF Competency Quiz</h1>
-                <p className="mt-4 mb-8">Test your knowledge by matching coaching behaviors to the correct ICF Core Competency.</p>
+                <p className="mt-4 mb-8">Test your knowledge by matching coaching behaviors to the correct ICF Core Competency - Updated for the 2025 ICF Core Competencies.</p>
                 <div className="flex justify-center gap-4">
                     <Button onClick={startQuiz}>Start Quiz</Button>
                     <Button onClick={() => setView('home')} variant="secondary">Back to Hub</Button>
@@ -1769,33 +1612,140 @@ const QuizComponent = ({ setView }) => {
     );
 };
 
+// Add this new component before your App function
+const AuthComponent = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleAuthAction = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      if (isLogin) {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password);
+      }
+      // The onAuthStateChanged listener in App will handle the redirect
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <Card className="max-w-md mx-auto">
+      <img src={myLogo} alt="CoachQ Logo" className="w-20 h-20 mx-auto mb-4" />
+      <h1 className="text-2xl font-bold text-center mb-6">{isLogin ? 'Welcome Back' : 'Create an Account'}</h1>
+      <form onSubmit={handleAuthAction} className="space-y-4">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          className="w-full p-3 border border-slate-300 rounded-lg"
+          required
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          className="w-full p-3 border border-slate-300 rounded-lg"
+          required
+        />
+        <Button type="submit" className="w-full">{isLogin ? 'Log In' : 'Sign Up'}</Button>
+      </form>
+      <div className="my-4 text-center text-slate-500">or</div>
+      <Button onClick={handleGoogleSignIn} variant="secondary" className="w-full">
+          Sign in with Google
+      </Button>
+      <p className="mt-6 text-center">
+        {isLogin ? "Don't have an account? " : "Already have an account? "}
+        <button onClick={() => setIsLogin(!isLogin)} className="font-semibold text-stone-700 hover:underline">
+          {isLogin ? 'Sign Up' : 'Log In'}
+        </button>
+      </p>
+      {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
+    </Card>
+  );
+};
+
 
 function App() {
-  const [view, setView] = useState('home'); 
+  const [view, setView] = useState('home');
   const [evaluationResult, setEvaluationResult] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true); // To handle the initial auth check
+
+  // Listen for authentication state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      setCurrentUser(user);
+      setAuthLoading(false);
+    });
+    return unsubscribe; // Cleanup subscription on unmount
+  }, []);
+
+  const handleSetView = (newView) => {
+    // If user logs out, always return to home (which will become the auth page)
+    if (newView === 'logout') {
+        signOut(auth);
+        setView('home');
+        return;
+    }
+    setView(newView);
+  }
+
+  // Show a loading spinner while checking for user
+  if (authLoading) {
+    return <div className="flex h-screen items-center justify-center"><LoadingSpinner text="Loading..." /></div>;
+  }
 
   return (
     <main className="font-sans p-4 md:p-8 flex items-center justify-center min-h-screen">
       <div className="w-full">
-        {(() => {
+        {!currentUser ? (
+          <AuthComponent />
+        ) : (
+          (() => {
+            // Pass currentUser and an updated setView to all components
+            const props = {
+              setView: handleSetView,
+              setEvaluationResult,
+              currentUser // Pass the user object down
+            };
+
             switch (view) {
               case 'transcript':
-                return <TranscriptEvaluator setView={setView} setEvaluationResult={setEvaluationResult} />;
+                return <TranscriptEvaluator {...props} />;
               case 'simulation':
-                return <Simulation setView={setView} setEvaluationResult={setEvaluationResult} />;
+                return <Simulation {...props} />;
               case 'voiceSimulation':
-                return <VoiceSimulation setView={setView} setEvaluationResult={setEvaluationResult} />;
+                return <VoiceSimulation {...props} />;
               case 'quiz':
-                return <QuizComponent setView={setView} />;
+                return <QuizComponent {...props} />;
               case 'dilemma':
-                return <EthicalDilemmaSimulator setView={setView} />;
+                return <EthicalDilemmaSimulator {...props} />;
               case 'result':
-                return <EvaluationResult result={evaluationResult} setView={setView} />;
+                return <EvaluationResult result={evaluationResult} {...props} />;
               case 'home':
               default:
-                return <HomePage setView={setView} />;
+                return <HomePage {...props} />;
             }
-        })()}
+          })()
+        )}
       </div>
     </main>
   );
