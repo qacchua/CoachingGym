@@ -448,7 +448,7 @@ const dilemmas = [
   { title: "Blurred Boundaries", scenario: "Your client, with whom you've built a strong rapport over six months, invites you to a celebratory dinner with their family to mark the promotion they achieved through your coaching. They insist on paying and want you to attend as a guest of honor. How do you handle this invitation?" }
 ];
 
-const EthicalDilemmaSimulator = ({ setView, currentUser }) => {
+const EthicalDilemmaSimulator = ({ setView, currentUser, dilemmaDocId, setDilemmaDocId }) => {
   const [dilemmaMode, setDilemmaMode] = useState('random');
   const [dilemmasList, setDilemmasList] = useState(dilemmas);
   const [currentDilemma, setCurrentDilemma] = useState(null);
@@ -456,8 +456,6 @@ const EthicalDilemmaSimulator = ({ setView, currentUser }) => {
   const [userResponse, setUserResponse] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCustomDilemmaSet, setIsCustomDilemmaSet] = useState(false);
-  const [dilemmaDocId, setDilemmaDocId] = useState(null); // To store the Firestore document ID
   const [flowStep, setFlowStep] = useState('select'); // 'select', 'respond', 'feedback'
 
   const loadRandomDilemma = useCallback(() => {
@@ -467,14 +465,6 @@ const EthicalDilemmaSimulator = ({ setView, currentUser }) => {
     setFeedback(null);
   }, [dilemmasList]);
 
-  const handleSetCustomDilemma = () => {
-    if (customDilemma.trim().length < 20) {
-        alert("Please describe your dilemma in a bit more detail.");
-        return;
-    }
-    setIsCustomDilemmaSet(true);
-  };
-  
   useEffect(() => {
     loadRandomDilemma();
   }, [loadRandomDilemma]);
@@ -518,34 +508,64 @@ const handleDilemmaSubmit = async () => {
 
 // This function handles STEP 2: Adding the solution and getting feedback
 const handleSolutionSubmit = async () => {
-    if (userResponse.trim().length < 10) {
-        alert("Please provide a more detailed response.");
-        return;
-    }
-    setIsLoading(true);
+  // Guard clause to ensure we have an ID
+  if (!dilemmaDocId) {
+    console.error("Dilemma Document ID is missing. Cannot proceed.");
+    alert("A critical error occurred. Please refresh the page and try again.");
+    return;
+  }
 
+  if (userResponse.trim().length < 10) {
+    alert("Please provide a more detailed response.");
+    return;
+  }
+  setIsLoading(true);
+
+  // --- STEP 1: ATTEMPT TO UPDATE FIRESTORE ---
+  try {
+    const dilemmaRef = doc(db, "dilemmas", dilemmaDocId);
+    await updateDoc(dilemmaRef, {
+      solution: userResponse
+    });
+    console.log("Firestore update successful. Document ID:", dilemmaDocId);
+
+  } catch (error) {
+    console.error("FIRESTORE UPDATE FAILED:", error);
+    alert("Error saving your solution. This is likely a Firestore security rule issue. Please check the console for details.");
+    setIsLoading(false);
+    return; // Stop if this fails
+  }
+
+  // --- STEP 2: ATTEMPT TO CALL THE AI MODEL ---
+  try {
     const dilemmaText = dilemmaMode === 'random' ? currentDilemma.scenario : customDilemma;
 
-    try {
-        // UPDATE the existing document with the user's solution
-        const dilemmaRef = doc(db, "dilemmas", dilemmaDocId);
-        await updateDoc(dilemmaRef, {
-            solution: userResponse
-        });
+    const feedbackSchema = {
+      type: "OBJECT",
+      properties: {
+        strengths: { type: "STRING", description: "Positive aspects of the user's response." },
+        pitfalls: { type: "STRING", description: "Potential risks or ethical blind spots." },
+        alternatives: { type: "STRING", description: "Suggestions for alternative actions." }
+      },
+      required: ["strengths", "pitfalls", "alternatives"]
+    };
 
-        // Get feedback from the Gemini API
-        const prompt = `An ICF-certified coach is facing an ethical dilemma...`; // Your full prompt
-        const schema = { /* ... */ };
-        const result = await callGeminiAPI(prompt, schema);
-        
-        setFeedback(result);
-        setFlowStep('feedback'); // Move to the feedback screen
-    } catch (error) {
-        console.error("Error updating document or getting feedback: ", error);
-        alert("An error occurred. Please try again.");
-    } finally {
-        setIsLoading(false);
-    }
+    const feedbackPrompt = `
+      You are an ICF Master Certified Coach. A coach has the ethical dilemma: "${dilemmaText}"
+      Their proposed solution is: "${userResponse}"
+      Analyze this based on ICF Code of Ethics and return feedback as a JSON object with keys "strengths", "pitfalls", and "alternatives".
+    `;
+
+    const result = await callGeminiAPI(feedbackPrompt, feedbackSchema);
+    setFeedback(result);
+    setFlowStep('feedback');
+
+  } catch (error) {
+    console.error("GEMINI API CALL FAILED:", error);
+    alert("Error getting AI feedback. The API call failed. Please check the console for details.");
+  } finally {
+    setIsLoading(false);
+  }
 };
 
   return (
@@ -646,6 +666,7 @@ const handleSolutionSubmit = async () => {
                 <Button onClick={() => {
                   setFeedback(null);
                   setUserResponse('');
+                  setFlowStep('select');
                   if(dilemmaMode === 'random') loadRandomDilemma();
                 }}>Try Another Dilemma</Button>
             </div>
@@ -1900,6 +1921,7 @@ function App() {
   const [evaluationResult, setEvaluationResult] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true); // To handle the initial auth check
+  const [dilemmaDocId, setDilemmaDocId] = useState(null);
 
   // Listen for authentication state changes
   useEffect(() => {
@@ -1938,7 +1960,9 @@ function App() {
               const props = {
                 setView: handleSetView,
                 setEvaluationResult,
-                currentUser
+                currentUser,
+                dilemmaDocId,
+                setDilemmaDocId
               };
 
             switch (view) {
