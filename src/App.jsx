@@ -4,7 +4,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Upload, Bot, FileText, Send, BrainCircuit, Sparkles, User, X, Loader2, Download, MessageSquare, BookOpenCheck, ShieldCheck, Lightbulb, HelpCircle, PieChart as PieChartIcon, PlusCircle, CheckSquare, Edit, Dices, List, UserPlus, Mic } from 'lucide-react';
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, onSnapshot } from "firebase/firestore";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInAnonymously, sendPasswordResetEmail, updatePassword } from "firebase/auth";
 import myLogo from './assets/SiteLogo.png'; // <-- ADD THIS LINE
@@ -448,7 +448,7 @@ const dilemmas = [
   { title: "Blurred Boundaries", scenario: "Your client, with whom you've built a strong rapport over six months, invites you to a celebratory dinner with their family to mark the promotion they achieved through your coaching. They insist on paying and want you to attend as a guest of honor. How do you handle this invitation?" }
 ];
 
-const EthicalDilemmaSimulator = ({ setView }) => {
+const EthicalDilemmaSimulator = ({ setView, currentUser }) => {
   const [dilemmaMode, setDilemmaMode] = useState('random');
   const [dilemmasList, setDilemmasList] = useState(dilemmas);
   const [currentDilemma, setCurrentDilemma] = useState(null);
@@ -456,6 +456,9 @@ const EthicalDilemmaSimulator = ({ setView }) => {
   const [userResponse, setUserResponse] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCustomDilemmaSet, setIsCustomDilemmaSet] = useState(false);
+  const [dilemmaDocId, setDilemmaDocId] = useState(null); // To store the Firestore document ID
+  const [flowStep, setFlowStep] = useState('select'); // 'select', 'respond', 'feedback'
 
   const loadRandomDilemma = useCallback(() => {
     const randomIndex = Math.floor(Math.random() * dilemmasList.length);
@@ -464,43 +467,86 @@ const EthicalDilemmaSimulator = ({ setView }) => {
     setFeedback(null);
   }, [dilemmasList]);
 
+  const handleSetCustomDilemma = () => {
+    if (customDilemma.trim().length < 20) {
+        alert("Please describe your dilemma in a bit more detail.");
+        return;
+    }
+    setIsCustomDilemmaSet(true);
+  };
+  
   useEffect(() => {
     loadRandomDilemma();
   }, [loadRandomDilemma]);
 
-  const handleSubmit = async () => {
-    const scenario = dilemmaMode === 'random' ? currentDilemma.scenario : customDilemma;
-    if (scenario.trim().length < 20 || userResponse.trim().length < 20) {
-      alert("Please ensure both the dilemma and your response are detailed enough for feedback.");
-      return;
-    }
+  // This function handles STEP 1: Creating the dilemma in the database
+const handleDilemmaSubmit = async () => {
     setIsLoading(true);
-    setFeedback(null);
-
-    const prompt = `Act as an ICF Master Certified Coach specializing in ethics... Dilemma: "${scenario}" Coach's Response: "${userResponse}"...`;
-    const schema = {
-      type: "OBJECT",
-      properties: {
-        strengths: { type: "STRING" },
-        pitfalls: { type: "STRING" },
-        alternatives: { type: "STRING" }
-      },
-      required: ["strengths", "pitfalls", "alternatives"]
-    };
+    let dilemmaText;
+    if (dilemmaMode === 'random') {
+        if (!currentDilemma) {
+            alert("Please select a random dilemma first.");
+            setIsLoading(false);
+            return;
+        }
+        dilemmaText = currentDilemma.scenario;
+    } else { // 'custom'
+        if (customDilemma.trim().length < 20) {
+            alert("Please describe your dilemma in a bit more detail.");
+            setIsLoading(false);
+            return;
+        }
+        dilemmaText = customDilemma;
+    }
 
     try {
-      const result = await callGeminiAPI(prompt, schema);
-      setFeedback(result);
-      if (dilemmaMode === 'custom' && !dilemmasList.find(d => d.scenario === customDilemma)) {
-        setDilemmasList(prev => [...prev, { title: "User-Submitted Dilemma", scenario: customDilemma }]);
-      }
-    } catch (e) {
-      console.error("Error getting feedback:", e);
-      setFeedback({ strengths: "Could not analyze response.", pitfalls: "Error communicating with the AI mentor.", alternatives: "" });
+        // Create a new document in Firestore with only the dilemma
+        const docRef = await addDoc(collection(db, "dilemmas"), {
+            userId: currentUser.uid,
+            dilemma: dilemmaText,
+            timestamp: new Date()
+        });
+        setDilemmaDocId(docRef.id); // Save the ID of the new document
+        setFlowStep('respond');     // Move to the next step
+    } catch (error) {
+        console.error("Error adding document: ", error);
+        alert("Could not save dilemma. Please try again.");
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
+
+// This function handles STEP 2: Adding the solution and getting feedback
+const handleSolutionSubmit = async () => {
+    if (userResponse.trim().length < 10) {
+        alert("Please provide a more detailed response.");
+        return;
+    }
+    setIsLoading(true);
+
+    const dilemmaText = dilemmaMode === 'random' ? currentDilemma.scenario : customDilemma;
+
+    try {
+        // UPDATE the existing document with the user's solution
+        const dilemmaRef = doc(db, "dilemmas", dilemmaDocId);
+        await updateDoc(dilemmaRef, {
+            solution: userResponse
+        });
+
+        // Get feedback from the Gemini API
+        const prompt = `An ICF-certified coach is facing an ethical dilemma...`; // Your full prompt
+        const schema = { /* ... */ };
+        const result = await callGeminiAPI(prompt, schema);
+        
+        setFeedback(result);
+        setFlowStep('feedback'); // Move to the feedback screen
+    } catch (error) {
+        console.error("Error updating document or getting feedback: ", error);
+        alert("An error occurred. Please try again.");
+    } finally {
+        setIsLoading(false);
+    }
+};
 
   return (
     <Card className="max-w-4xl mx-auto">
@@ -508,49 +554,66 @@ const EthicalDilemmaSimulator = ({ setView }) => {
         <h1 className="text-3xl font-bold text-slate-800">Ethical Dilemma Simulator</h1>
         <Button onClick={() => setView('home')} variant="secondary" className="px-4 py-2 text-sm">&larr; Back</Button>
       </div>
-      
-      {!feedback && (
-        <>
-          <div className="my-6 border-b pb-6">
-            <p className="block text-lg font-semibold text-slate-700 mb-3">1. Choose dilemma format</p>
-            <div className="flex gap-6">
-              <label className="flex items-center cursor-pointer">
-                <input type="radio" name="dilemmaMode" value="random" checked={dilemmaMode === 'random'} onChange={() => setDilemmaMode('random')} className="h-4 w-4 text-stone-600" />
-                <span className="ml-2">Use a Random Dilemma</span>
-              </label>
-              <label className="flex items-center cursor-pointer">
-                <input type="radio" name="dilemmaMode" value="custom" checked={dilemmaMode === 'custom'} onChange={() => setDilemmaMode('custom')} className="h-4 w-4 text-stone-600" />
-                <span className="ml-2">Enter Your Own Dilemma</span>
-              </label>
-            </div>
-          </div>
+    
+      {/* STEP 1: SELECT DILEMMA */}
+        {flowStep === 'select' && (
+            <>
+                 {/* vvv THIS IS THE MISSING SECTION vvv */}
+              <div className="my-6 border-b pb-6">
+                <p className="block text-lg font-semibold text-slate-700 mb-3">1. Choose dilemma format</p>
+                <div className="flex gap-6">
+                  <label className="flex items-center cursor-pointer">
+                    <input type="radio" name="dilemmaMode" value="random" checked={dilemmaMode === 'random'} onChange={() => setDilemmaMode('random')} className="h-4 w-4 text-stone-600" />
+                    <span className="ml-2">Use a Random Dilemma</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input type="radio" name="dilemmaMode" value="custom" checked={dilemmaMode === 'custom'} onChange={() => setDilemmaMode('custom')} className="h-4 w-4 text-stone-600" />
+                    <span className="ml-2">Enter Your Own Dilemma</span>
+                  </label>
+                </div>
+              </div>
+        {/* ^^^ END OF MISSING SECTION ^^^ */}
+        {/* ... Radio buttons to choose 'random' or 'custom' ... */}
+                {dilemmaMode === 'random' && currentDilemma && (
+                    <div className="p-4 bg-slate-50 rounded-lg">
+                        <h2 className="font-bold text-lg">{currentDilemma?.title}</h2>
+                        <p className="mt-2">{currentDilemma?.scenario}</p>
+                    </div>
+                )}
+                {dilemmaMode === 'custom' && (
+                    <div>
+                        <label htmlFor="custom-dilemma" className="block text-lg font-semibold text-slate-700 mb-2">Describe your dilemma:</label>
+                        <textarea id="custom-dilemma" value={customDilemma} onChange={(e) => setCustomDilemma(e.target.value)} className="w-full h-32 p-4 border rounded-lg"/>
+                    </div>
+                )}
+                <div className="mt-6 flex justify-end gap-4">
+                    {dilemmaMode === 'random' && <Button onClick={loadRandomDilemma} variant="secondary">New Random Dilemma</Button>}
+                    <Button onClick={handleDilemmaSubmit} disabled={isLoading}>
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Proceed to Solution"}
+                    </Button>
+                </div>
+            </>
+        )}
 
-          {dilemmaMode === 'random' && currentDilemma && (
-            <div className="p-4 bg-slate-50 rounded-lg mb-6">
-              <h2 className="font-bold text-lg">{currentDilemma.title}</h2>
-              <p className="mt-2">{currentDilemma.scenario}</p>
-            </div>
-          )}
-
-          {dilemmaMode === 'custom' && (
-            <div className="mb-6">
-               <label htmlFor="custom-dilemma" className="block text-lg font-semibold text-slate-700 mb-2">Describe your dilemma:</label>
-               <textarea id="custom-dilemma" value={customDilemma} onChange={(e) => setCustomDilemma(e.target.value)} className="w-full h-32 p-4 border rounded-lg"/>
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="user-response" className="block text-lg font-semibold text-slate-700 mb-2">2. How would you handle this?</label>
-            <textarea id="user-response" value={userResponse} onChange={(e) => setUserResponse(e.target.value)} className="w-full h-48 p-4 border rounded-lg"/>
-          </div>
-          <div className="mt-6 flex justify-end gap-4">
-             <Button onClick={loadRandomDilemma} variant="secondary">New Random Dilemma</Button>
-             <Button onClick={handleSubmit} disabled={isLoading}>
-                {isLoading ? <><Loader2 className="w-5 h-5 animate-spin" /> Submitting...</> : "Submit for Feedback"}
-             </Button>
-          </div>
-        </>
-      )}
+        {/* STEP 2: PROVIDE RESPONSE */}
+        {flowStep === 'respond' && (
+            <>
+                <div className="p-4 bg-slate-50 rounded-lg mb-6">
+                    <h2 className="font-bold text-lg">The Dilemma:</h2>
+                    <p className="italic mt-2">"{dilemmaMode === 'random' ? currentDilemma.scenario : customDilemma}"</p>
+                </div>
+                <div>
+                    <label htmlFor="user-response" className="block text-lg font-semibold text-slate-700 mb-2">How would you handle this?</label>
+                    <textarea id="user-response" value={userResponse} onChange={(e) => setUserResponse(e.target.value)} className="w-full h-48 p-4 border rounded-lg"/>
+                </div>
+                <div className="mt-6 flex justify-end">
+                    <Button onClick={handleSolutionSubmit} disabled={isLoading}>
+                         {isLoading ? <><Loader2 className="w-5 h-5 animate-spin" /> Submitting...</> : "Submit for Feedback"}
+                    </Button>
+                </div>
+            </>
+        )}
+        
 
       {isLoading && <LoadingSpinner text="Analyzing your response..." />}
       
@@ -1033,50 +1096,59 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
 };
 const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
     const [persona, setPersona] = useState(null);
+    const [personas, setPersonas] = useState([]); // Restored this state
     const [history, setHistory] = useState([]);
-    const [input, setInput] = useState(''); // FIX: Renamed from userInput to match state
+    const [simulationStep, setSimulationStep] = useState('options'); // Default to options
+    const [isEvaluating, setIsEvaluating] = useState(false);
+    const [loadingText, setLoadingText] = useState('');
+    const [customPersona, setCustomPersona] = useState({ name: '', industry: '', role: '', challenges: '', goals: '', internalState: '', keyPeople: '' });
+    const [userInput, setUserInput] = useState(''); // Your original used this name
     const [isLoading, setIsLoading] = useState(false);
-    const [simulationStep, setSimulationStep] = useState('options'); // Changed initial step to 'options'
-    const [customPersonaName, setCustomPersonaName] = useState('');
-    const [customPersonaRole, setCustomPersonaRole] = useState('');
-    const [customPersonaGoal, setCustomPersonaGoal] = useState('');
-    const [customPersonaBackground, setCustomPersonaBackground] = useState('');
-    const [communityPersonas, setCommunityPersonas] = useState([]);
-    const [isEvaluating, setIsEvaluating] = useState(false); // FIX: Added missing state
-    const [loadingText, setLoadingText] = useState(''); // FIX: Added missing state
-    const chatEndRef = useRef(null);
+    const chatWindowRef = useRef(null);
 
     // This useEffect for loading community personas is correct!
     useEffect(() => {
-        const unsubscribe = onSnapshot(collection(db, "personas"), (snapshot) => {
-            const personasData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setCommunityPersonas(personasData);
-        });
-        return () => unsubscribe();
-    }, []);
-
-    const defaultPersonas = [
-        { name: 'Alex Chen', role: 'New Manager', challenges: "Struggling with delegation and trusting the team.", goals: "To delegate effectively without losing control." },
-        { name: 'Maria Rodriguez', role: 'Senior Executive', challenges: "Feeling disengaged and apathetic despite success.", goals: "To reconnect with passion for work." },
-        { name: 'Sam Jones', role: 'Creative Director', challenges: "Avoiding conflict with a peer who undermines the team.", goals: "To address conflict constructively." },
-    ];
+        const defaultPersonas = [
+          { name: 'Alex Chen', industry: 'Tech Startup', role: 'New Manager', challenges: "I'm drowning in work...", goals: "To figure out how to delegate...", internalState: "Anxious, frustrated...", keyPeople: "Ben (Direct Report)..." },
+          { name: 'Maria Rodriguez', industry: 'Corporate Finance', role: 'Senior Executive', challenges: "I just got out of a 3-hour Q3 planning meeting...", goals: "To understand what's causing this disconnect...", internalState: "Feeling numb, apathetic...", keyPeople: "Cynthia (My Boss, SVP)..." },
+          { name: 'Sam Jones', industry: 'Marketing', role: 'Creative Director', challenges: "My peer, a new director named David...", goals: "To find a way to address the conflict...", internalState: "Frustrated, conflict-avoidant...", keyPeople: "David (Peer, Director)..." },
+        ];
     
-    // Combine default and community personas
-    const allPersonas = [...defaultPersonas, ...communityPersonas];
+     const unsubscribe = onSnapshot(collection(db, "personas"), (snapshot) => {
+            const communityPersonas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // Combine default and community personas, avoiding duplicates
+            const combined = [...defaultPersonas, ...communityPersonas];
+            const uniquePersonas = Array.from(new Set(combined.map(p => p.name))).map(name => combined.find(p => p.name === name));
+            setPersonas(uniquePersonas);
+        });
 
+        // Clean up the listener when the component unmounts
+        return () => unsubscribe();
+    }, []); // The empty array ensures this runs only once
+
+
+    // Combine default and community personas
+    
     const createDescriptionFromPersona = (p) => {
-        return `You are role-playing a coaching client. Name: ${p.name}. Role: ${p.role}. Challenge: "${p.challenges}". Goal for session: "${p.goals}".`;
+        return `You are to role-play as a coaching client with the following detailed persona. Embody their internal state, refer to the key people by name, and draw from their specific challenges and goals in your responses. Be detailed and realistic.
+
+**Name:** ${p.name || 'Alex'}
+**Role:** ${p.role} in the ${p.industry || 'any'} industry.
+**Specific Challenges:** "${p.challenges}"
+**Goals for this coaching session:** "${p.goals}"
+**Internal State (How you feel inside):** "${p.internalState}"
+**Key People in your story:** "${p.keyPeople}"`;
     };
 
     const handleSendMessage = useCallback(async () => {
-        if (input.trim() === '' || isLoading) return; // FIX: Use 'input'
-        const newHistory = [...history, { role: 'user', text: input }]; // FIX: Use 'input'
+        if (userInput.trim() === '' || isLoading) return; // FIX: Use 'input'
+        const newHistory = [...history, { role: 'user', text: userInput }]; // FIX: Use 'input'
         setHistory(newHistory);
-        setInput(''); // FIX: Use 'setInput'
+        setUserInput(''); // FIX: Use 'setUserInput'
         setIsLoading(true);
 
         const prompt = `You are acting as a coaching client. Your persona is: "${createDescriptionFromPersona(persona)}".
-        Based on the conversation history below, provide a natural, in-character response.
+        Based on the conversation history below, provide a natural, in-character response that embodies the persona's internal state and refers to key people by name. Keep your response concise. 
         History:\n${newHistory.map(m => `${m.role === 'user' ? 'Coach' : 'Client'}: ${m.text}`).join('\n')}`;
         const chatSchema = { type: "OBJECT", properties: { responseText: { type: "STRING" } }, required: ["responseText"] };
 
@@ -1090,45 +1162,74 @@ const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [input, history, isLoading, persona]); // FIX: Use 'input'
+    }, [userInput, history, isLoading, persona]); // FIX: Use 'input'
 
     const handleEndAndEvaluate = useCallback(async () => {
         if (history.length < 4) {
-            alert("Please have a slightly longer conversation before evaluating.");
-            return;
-        };
-        setIsEvaluating(true); // FIX: Now uses correct state
-        const transcript = history.map(m => `${m.role === 'user' ? 'Coach' : 'Client'}: ${m.text}`).join('\n');
+         alert("Please have a slightly longer conversation before evaluating.");
+         return;
+     };
+     setIsEvaluating(true);
+     const transcript = history.map(m => `${m.role === 'user' ? 'Coach' : 'Client'}: ${m.text}`).join('\n');
+     try {
+        const fullReport = {};
+        setLoadingText("Analyzing competencies...");
+        const competencyPrompt = `Analyze the following coaching transcript based on ICF competencies 3 through 8. For each competency, provide a rating (Exemplary, Proficient, Sufficient, Needs Development) and a detailed justification. Return a JSON object with a single key "evaluation" containing an array of objects. Transcript: ${transcript}`;
+        const competencySchema = {type: "OBJECT", properties: { evaluation: { type: "ARRAY", items: { type: "OBJECT", properties: { competency: { type: "STRING" }, rating: { type: "STRING" }, justification: { type: "STRING" } }, required: ["competency", "rating", "justification"] } } } };
+        const competencyResult = await callGeminiAPI(competencyPrompt, competencySchema);
+        fullReport.evaluation = competencyResult.evaluation;
+        fullReport.foundationalCompetencies = [
+            { competency: "1: Demonstrates Ethical Practice", assessmentNote: "This competency is evaluated on an 'Observed / Not Observed' basis during a live or recorded session review by a certified assessor, focusing on adherence to the ICF Code of Ethics." },
+            { competency: "2: Embodies a Coaching Mindset", assessmentNote: "This competency reflects ongoing development and is primarily assessed through the written ICF Credentialing Exam and mentor coaching, rather than a single performance evaluation." }
+        ];
+
+        setLoadingText("Analyzing talk time...");
+        const talkTimePrompt = `Analyze the speaker talk time in the following transcript. Estimate the percentage of talk time for the Coach and the Client. Return a JSON object with keys "coachPercentage" and "clientPercentage". Transcript: ${transcript}`;
+        const talkTimeSchema = { type: "OBJECT", properties: { coachPercentage: { type: "NUMBER" }, clientPercentage: { type: "NUMBER" } }, required: ["coachPercentage", "clientPercentage"] };
+        fullReport.speakerAnalysis = await callGeminiAPI(talkTimePrompt, talkTimeSchema);
+
+        setLoadingText("Identifying key insights...");
+        const insightsPrompt = `Identify up to 5 pivotal moments of insight the client experienced in this transcript. Return a JSON object with a single key "keyInsights" containing an array of strings. Transcript: ${transcript}`;
+        const insightsSchema = { type: "OBJECT", properties: { keyInsights: { type: "ARRAY", items: { type: "STRING" } } } };
+        fullReport.keyInsights = (await callGeminiAPI(insightsPrompt, insightsSchema)).keyInsights;
+
+        setLoadingText("Suggesting alternative questions...");
+        const questionsPrompt = `Suggest up to 5 powerful, alternative questions the coach could have asked in this transcript to deepen insight. Return a JSON object with a single key "alternativeQuestions" containing an array of strings. Transcript: ${transcript}`;
+        const questionsSchema = { type: "OBJECT", properties: { alternativeQuestions: { type: "ARRAY", items: { type: "STRING" } } } };
+        fullReport.alternativeQuestions = (await callGeminiAPI(questionsPrompt, questionsSchema)).alternativeQuestions;
+
+        setLoadingText("Analyzing question types...");
+        const questionAnalysisPrompt = `Analyze the Coach's dialogue in this transcript. Categorize each question into 'Open-Ended', 'Leading', 'Clarifying', or 'Observation'. Provide the percentage breakdown. Return a JSON object with keys "openEnded", "leading", "clarifying", and "observation". Transcript: ${transcript}`;
+        const questionAnalysisSchema = { type: "OBJECT", properties: { openEnded: { type: "NUMBER" }, leading: { type: "NUMBER" }, clarifying: { type: "NUMBER" }, observation: { type: "NUMBER" } }, required: ["openEnded", "leading", "clarifying", "observation"] };
+        fullReport.questionAnalysis = await callGeminiAPI(questionAnalysisPrompt, questionAnalysisSchema);
         
-        try {
-            const fullReport = {};
-            setLoadingText("Analyzing competencies..."); // FIX: Now uses correct state
-            const competencyPrompt = `Analyze the coaching transcript based on ICF competencies 3-8... Transcript: ${transcript}`;
-            const competencySchema = {type: "OBJECT", properties: { evaluation: { type: "ARRAY", items: { type: "OBJECT", properties: { competency: { type: "STRING" }, rating: { type: "STRING" }, justification: { type: "STRING" } }, required: ["competency", "rating", "justification"] } } } };
-            const competencyResult = await callGeminiAPI(competencyPrompt, competencySchema);
-            fullReport.evaluation = competencyResult.evaluation;
-            // ... (rest of the API calls for the report) ...
-            setEvaluationResult(fullReport);
-            setView('result');
-        } catch(e) {
-            alert(e.message || "Sorry, an error occurred during evaluation.");
-        } finally {
-            setIsEvaluating(false); // FIX: Now uses correct state
-        }
-    }, [history, setView, setEvaluationResult]);
+        setEvaluationResult(fullReport);
+        setView('result');
+     } catch(e) {
+        console.error(e);
+        alert(e.message || "Sorry, there was an error evaluating your conversation. Please try again.");
+     } finally {
+        setIsEvaluating(false);
+     }
+  }, [history, setView, setEvaluationResult]);
 
     const startCustomSimulation = async () => {
-        if (!customPersonaRole || !customPersonaGoal || !customPersonaBackground) { // FIX: Use correct state names
-            alert("Please fill out Role, Goal, and Background for your persona.");
+        const { name, industry, role, challenges, goals, internalState, keyPeople } = customPersona;
+        if (!role || !challenges || !goals) {
+            alert("Please fill out Role, Challenges, and Goals for your persona.");
             return;
         }
+
         // FIX: Build the object from the correct state variables
         const newPersonaObject = {
-            name: customPersonaName || `A ${customPersonaRole}`,
-            role: customPersonaRole,
-            goals: customPersonaGoal,
-            challenges: customPersonaBackground, // Mapped background to challenges
-            createdBy: currentUser.uid,
+            name: name.trim() || `A ${role}`,
+            industry,
+            role,
+            challenges,
+            goals,
+            internalState,
+            keyPeople,
+            createdBy: currentUser.uid, // Track who created it
             creatorEmail: currentUser.email
         };
 
@@ -1136,39 +1237,154 @@ const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
         setHistory([{role: 'model', text: `Hello, coach. Thanks for meeting with me.`}]);
         setSimulationStep('chat');
 
-        if (currentUser) {
-            try {
-                await addDoc(collection(db, "personas"), newPersonaObject);
-            } catch (error) {
-                console.error("Error adding custom persona to Firestore: ", error);
-            }
+        // Save the new persona to the public Firestore collection
+        try {
+            await addDoc(collection(db, "personas"), newPersonaObject);
+        } catch (error) {
+            console.error("Error adding custom persona to Firestore: ", error);
         }
     };
+
     
-    // ... (rest of the component's JSX and logic)
-    // This part should include the UI for 'options', 'select', 'create', and 'chat' steps.
-    // I've stubbed it out here to show the structure. You already have this JSX in your file.
+    
+       const startRandomSimulation = () => {
+        if (personas.length === 0) {
+            alert("Personas are still loading, please try again in a moment.");
+            return;
+        }
+        const randomPersonaObject = personas[Math.floor(Math.random() * personas.length)];
+        setPersona(randomPersonaObject);
+        setHistory([{role: 'model', text: `Hello, coach. Thanks for meeting with me.`}]);
+        setSimulationStep('chat');
+    };
+
+    // Scroll effect
+    useEffect(() => {
+        if (chatWindowRef.current) {
+          chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight;
+        }
+    }, [history]);
+    
+    // JSX Rendering based on your original, working component
+    if (isEvaluating) {
+        return <LoadingSpinner text={loadingText} />;
+    }
+
     if (simulationStep === 'options') {
         return (
-            <Card className="max-w-2xl mx-auto text-center">
-                 <div className="flex justify-end">
-                    <Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm absolute top-6 right-6">&larr; Back</Button>
-                 </div>
-                 <IconWrapper><Bot className="w-8 h-8" /></IconWrapper>
-                 <h1 className="text-3xl font-bold text-slate-800 mt-4 mb-4">Simulation Options</h1>
-                 <p className="text-slate-600 mb-8">How would you like to start your coaching simulation?</p>
-                 <div className="space-y-4">
-                     <Button onClick={() => setSimulationStep('select')} variant="secondary" className="w-full"><List className="w-5 h-5" /> Choose a Persona</Button>
-                     <Button onClick={() => setSimulationStep('create')} variant="secondary" className="w-full"><UserPlus className="w-5 h-5" /> Create Your Own</Button>
-                 </div>
-            </Card>
+          <Card className="max-w-2xl mx-auto text-center">
+            <div className="flex justify-end">
+                <Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm absolute top-6 right-6">&larr; Back</Button>
+            </div>
+            <IconWrapper><Bot className="w-8 h-8" /></IconWrapper>
+            <h1 className="text-3xl font-bold text-slate-800 mt-4 mb-4">Text Simulation Options</h1>
+            <div className="space-y-4">
+                <Button onClick={startRandomSimulation} variant="secondary" className="w-full" disabled={personas.length === 0}><Dices className="w-5 h-5" /> Select a Random Persona</Button>
+                <Button onClick={() => setSimulationStep('select')} variant="secondary" className="w-full"><List className="w-5 h-5" /> Choose a Persona</Button>
+                <Button onClick={() => setSimulationStep('create')} variant="secondary" className="w-full"><UserPlus className="w-5 h-5" /> Create Your Own</Button>
+            </div>
+          </Card>
         );
     }
     
-    // ... JSX for 'select', 'create', and 'chat' steps follows ...
+    if (simulationStep === 'select') {
+        return (
+          <Card className="max-w-2xl mx-auto">
+            <div className="flex justify-between items-start mb-4">
+                <h1 className="text-3xl font-bold text-slate-800">Choose a Client Persona</h1>
+                <Button onClick={() => setSimulationStep('options')} variant="secondary" className="px-3 py-1 text-sm">&larr; Back</Button>
+            </div>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-4 -mr-4">
+                {personas.map(p => ( // This now correctly uses the 'personas' state
+                    <button key={p.name} onClick={() => {
+                        setPersona(p);
+                        setHistory([{role: 'model', text: `Hello, coach. Thanks for meeting with me.`}])
+                        setSimulationStep('chat');
+                    }} className="w-full text-left p-4 border rounded-lg hover:bg-stone-50 transition">
+                      <h3 className="font-bold text-lg text-stone-700">{p.name}</h3>
+                      <p className="text-slate-600 text-sm"><span className="font-semibold">Role:</span> {p.role}</p>
+                      <p className="text-slate-600 text-sm"><span className="font-semibold">Challenges:</span> {p.challenges}</p>
+                    </button>
+                ))}
+            </div>
+          </Card>
+        );
+    }
 
-    return (<div>...</div>); // Placeholder for the rest of your JSX
-};
+      if (simulationStep === 'create') {
+        return (
+            <Card className="max-w-2xl mx-auto">
+                <div className="flex justify-between items-start mb-4">
+                    <h1 className="text-3xl font-bold text-slate-800">Create Custom Persona</h1>
+                    <Button onClick={() => setSimulationStep('options')} variant="secondary" className="px-4 py-2 text-sm">&larr; Back</Button>
+                </div>
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="persona-name" className="block text-sm font-medium text-slate-700 mb-1">Name (Optional)</label>
+                        <input type="text" id="persona-name" value={customPersona.name} onChange={(e) => setCustomPersona({...customPersona, name: e.target.value})} placeholder="e.g., Alex Chen" className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
+                    </div>
+                     <div>
+                        <label htmlFor="persona-role" className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                        <input type="text" id="persona-role" value={customPersona.role} onChange={(e) => setCustomPersona({...customPersona, role: e.target.value})} placeholder="e.g., New Manager" className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
+                    </div>
+                    <div>
+                        <label htmlFor="persona-challenges" className="block text-sm font-medium text-slate-700 mb-1">Specific Challenges</label>
+                        <textarea id="persona-challenges" value={customPersona.challenges} onChange={(e) => setCustomPersona({...customPersona, challenges: e.target.value})} placeholder="e.g., My direct report, Ben, missed a deadline and I had to work all weekend to fix it..." className="w-full h-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
+                    </div>
+                     <div>
+                        <label htmlFor="persona-goals" className="block text-sm font-medium text-slate-700 mb-1">Goals for the coaching session</label>
+                        <textarea id="persona-goals" value={customPersona.goals} onChange={(e) => setCustomPersona({...customPersona, goals: e.target.value})} placeholder="e.g., Learn how to delegate effectively without losing control..." className="w-full h-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
+                    </div>
+                    <div>
+                        <label htmlFor="persona-internal-state" className="block text-sm font-medium text-slate-700 mb-1">Internal State (How the client feels)</label>
+                        <textarea id="persona-internal-state" value={customPersona.internalState} onChange={(e) => setCustomPersona({...customPersona, internalState: e.target.value})} placeholder="e.g., Anxious, frustrated with my team but also with myself..." className="w-full h-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
+                    </div>
+                     <div>
+                        <label htmlFor="persona-key-people" className="block text-sm font-medium text-slate-700 mb-1">Key People (Colleagues, managers, etc.)</label>
+                        <textarea id="persona-key-people" value={customPersona.keyPeople} onChange={(e) => setCustomPersona({...customPersona, keyPeople: e.target.value})} placeholder="e.g., Ben (Direct Report) - struggling. Sarah (Direct Report) - has potential." className="w-full h-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
+                    </div>
+                    <Button onClick={startCustomSimulation} className="w-full">Start Simulation with this Persona</Button>
+                </div>
+            </Card>
+        );
+      }
+    
+      return ( // simulationStep === 'chat'
+        <Card className="max-w-4xl mx-auto h-[85vh] flex flex-col">
+           <div className="flex justify-between items-center mb-4 pb-4 border-b">
+            <div>
+                <h1 className="text-2xl font-bold text-slate-800">Coaching Simulation</h1>
+                <p className="text-slate-600">You are coaching a client. Type your responses below.</p>
+            </div>
+            <Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm">&larr; Back</Button>
+          </div>
+          <div ref={chatWindowRef} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6">
+            {history.map((msg, index) => (
+              <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                {msg.role === 'model' && <div className="bg-stone-700 text-white rounded-full p-2"><Bot size={20} /></div>}
+                <div className={`max-w-md p-4 rounded-2xl ${msg.role === 'user' ? 'bg-slate-200 text-slate-800 rounded-br-none' : 'bg-stone-700 text-white rounded-bl-none'}`}>
+                  {msg.text}
+                </div>
+                 {msg.role === 'user' && <div className="bg-slate-200 text-slate-800 rounded-full p-2"><User size={20} /></div>}
+              </div>
+            ))}
+            {isLoading && <div className="flex justify-start"><div className="p-4 rounded-2xl bg-stone-700 text-white rounded-bl-none">...</div></div>}
+          </div>
+          <div className="mt-6 flex gap-4">
+            <input
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+              placeholder="Type your coaching question here..."
+              className="flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"
+            />
+            <Button onClick={handleSendMessage} disabled={isLoading}><Send /></Button>
+          </div>
+          <Button onClick={handleEndAndEvaluate} variant="secondary" className="w-full mt-4">End Simulation & Evaluate</Button>
+        </Card>
+      );
+    };
 
 const EvaluationReport = ({ result, setView }) => {
     const { foundationalCompetencies, evaluation, speakerAnalysis, keyInsights, alternativeQuestions, questionAnalysis } = result;
@@ -1670,6 +1886,14 @@ const AuthComponent = () => {
   );
 };
 
+const Header = () => {
+  return (
+    <div className="max-w-6xl mx-auto mb-8 flex items-center gap-4">
+      <img src={myLogo} alt="CoachQ Logo" className="w-12 h-12" />
+      <h1 className="text-3xl font-bold text-slate-800">The Coaching Gym</h1>
+    </div>
+  );
+};
 
 function App() {
   const [view, setView] = useState('home');
@@ -1707,13 +1931,15 @@ function App() {
         {!currentUser ? (
           <AuthComponent />
         ) : (
-          (() => {
-            // Pass currentUser and an updated setView to all components
-            const props = {
-              setView: handleSetView,
-              setEvaluationResult,
-              currentUser // Pass the user object down
-            };
+           <>
+            <Header /> {/* <-- Your new header will always be displayed here */}
+  
+           {(() => {
+              const props = {
+                setView: handleSetView,
+                setEvaluationResult,
+                currentUser
+              };
 
             switch (view) {
               case 'transcript':
@@ -1732,7 +1958,8 @@ function App() {
               default:
                 return <HomePage {...props} />;
             }
-          })()
+         })()}
+          </>
         )}
       </div>
     </main>
