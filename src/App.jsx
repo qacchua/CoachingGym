@@ -1130,10 +1130,37 @@ const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
     // This useEffect for loading community personas is correct!
     useEffect(() => {
         const defaultPersonas = [
-          { name: 'Alex Chen', industry: 'Tech Startup', role: 'New Manager', challenges: "I'm drowning in work...", goals: "To figure out how to delegate...", internalState: "Anxious, frustrated...", keyPeople: "Ben (Direct Report)..." },
-          { name: 'Maria Rodriguez', industry: 'Corporate Finance', role: 'Senior Executive', challenges: "I just got out of a 3-hour Q3 planning meeting...", goals: "To understand what's causing this disconnect...", internalState: "Feeling numb, apathetic...", keyPeople: "Cynthia (My Boss, SVP)..." },
-          { name: 'Sam Jones', industry: 'Marketing', role: 'Creative Director', challenges: "My peer, a new director named David...", goals: "To find a way to address the conflict...", internalState: "Frustrated, conflict-avoidant...", keyPeople: "David (Peer, Director)..." },
-        ];
+          { 
+            name: 'Alex Chen', 
+            gender: 'Female',
+            industry: 'Tech Startup', 
+            role: 'New Manager', 
+            challenges: "I'm drowning in work because I don't trust my team. My direct report, Ben, just missed a major deadline on the Apollo project, and I had to work all weekend to fix it myself. I feel like I have to do everything to get it right.", 
+            goals: "To figure out how to delegate effectively without feeling like I'm losing control. I want to trust my team, especially Sarah who has potential, but I'm scared of them failing.",
+            internalState: "Anxious, frustrated with my team but also with myself. Feels like a micromanager but doesn't know how to stop. Worried about burning out.",
+            keyPeople: "Ben (Direct Report) - Recently missed a key deadline. Sarah (Direct Report) - Shows promise, but I hesitate to give her big tasks."
+          },
+          { 
+            name: 'Maria Rodriguez', 
+            gender: 'Female',
+            industry: 'Corporate Finance', 
+            role: 'Senior Executive', 
+            challenges: "I just got out of a 3-hour Q3 planning meeting with my boss, Cynthia, and I felt nothing. We hit our targets, but I'm just going through the motions. The big promotion I wanted for years feels empty now that I'm in the running for it.", 
+            goals: "To understand what's causing this disconnect. Is it the job? Is it me? I want to feel engaged and passionate again, even if it means considering a drastic change.",
+            internalState: "Feeling numb, apathetic, and trapped. A sense of guilt for not appreciating the success. Confused about future career goals.",
+            keyPeople: "Cynthia (My Boss, SVP) - Supportive, but high-pressure. Pushing me for the big promotion."
+          },
+          { 
+            name: 'Sam Jones', 
+            gender: 'Male',
+            industry: 'Marketing', 
+            role: 'Creative Director', 
+            challenges: "My peer, a new director named David, is constantly undermining my team's ideas in cross-functional meetings. It's becoming political, and my team's morale is suffering. I avoid confronting him because I don't want to make things worse.", 
+            goals: "To find a way to address the conflict with David constructively and protect my team's work and confidence without escalating a war.",
+            internalState: "Frustrated, conflict-avoidant, protective of my team. Feeling a bit powerless and resentful.",
+            keyPeople: "David (Peer, Director) - Undermines my team in public forums. My Team - Their morale is dropping and they are starting to disengage."
+    }
+   ];
     
      const unsubscribe = onSnapshot(collection(db, "personas"), (snapshot) => {
             const communityPersonas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
