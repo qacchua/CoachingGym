@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "coachq-eb00b"
-  }
+    "default": "coachq-eb00b",
+    "production": "coachq-prod",
+    "development": "coachq-eb00b"
+  },
+  "targets": {},
+  "etags": {}
 }
