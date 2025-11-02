@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, FileText, BookOpenCheck, ShieldCheck, Mic } from 'lucide-react';
+import { Bot, FileText, BookOpenCheck, ShieldCheck, Mic, Users } from 'lucide-react';
 import Card from './Card'; // Assuming Card, Button, IconWrapper are in the same folder or adjust path
 import Button from './Button';
 import IconWrapper from './IconWrapper';
@@ -59,6 +59,14 @@ const HomePage = ({ setView, currentUser }) => {
             <p className="text-slate-600 mb-6">Navigate tricky ethical scenarios with AI mentor feedback.</p>
           </div>
           <Button onClick={() => setView('dilemma')}>Start Simulation</Button>
+        </Card>
+        <Card className="hover:shadow-2xl hover:-translate-y-2 text-center flex flex-col h-full">
+          <div className="flex-grow">
+            <IconWrapper><Users className="w-8 h-8" /></IconWrapper>
+            <h2 className="text-2xl font-bold text-slate-800 mt-4 mb-2">The Clubhouse</h2>
+            <p className="text-slate-600 mb-6">Ask questions, share insights, and connect with other coaches.</p>
+          </div>
+          <Button onClick={() => setView('chat')}>Enter Chat</Button>
         </Card>
       </div>
     </div>

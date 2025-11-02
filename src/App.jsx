@@ -14,6 +14,7 @@ import QuizComponent from './components/QuizComponent';
 import EthicalDilemmaSimulator from './components/EthicalDilemmaSimulator';
 import EvaluationResult from './components/EvaluationResult';
 import AuthComponent from './components/AuthComponent';
+import Chat from './components/Chat.jsx'
 import Header from './components/Header';
 import LoadingSpinner from './components/LoadingSpinner';
 
@@ -83,6 +84,7 @@ function App() {
               case 'quiz':          return <QuizComponent {...props} />;
               case 'dilemma':       return <EthicalDilemmaSimulator {...props} />;
               case 'result':        return <EvaluationResult result={evaluationResult} {...props} />;
+              case 'chat':          return <Chat {...props} />;
               case 'home':
               default:              return <HomePage {...props} />;
             }
