@@ -1,133 +1,189 @@
+// src/components/EthicalDilemmaSimulator.jsx
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Loader2, CheckSquare, Lightbulb, Sparkles } from 'lucide-react';
 import Card from './Card';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
-import { callGeminiAPI } from '../utils/api'; // Assuming api utils
-import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
-import { db } from '../firebaseConfig'; // Assuming firebase config is moved
+import { callGeminiAPI } from '../utils/api';
+// Import all the firestore functions you'll need
+import { 
+  collection, 
+  addDoc, 
+  doc, 
+  setDoc, // Use setDoc to specify a doc ID
+  getDoc,  // Use getDoc to check for an existing solution
+  onSnapshot // Use onSnapshot to get the public dilemma list
+} from "firebase/firestore"; 
+import { db } from '../App.jsx'; // Correct db import
 
-const dilemmas = [
-  { title: "Conflict of Interest", scenario: "You are coaching a manager, Sarah, in a large tech company. During a session, Sarah tells you she is planning to apply for a senior director role that is about to open up. The next day, another one of your clients from the same company, David, tells you he is also planning to apply for that exact same role. How do you proceed?" },
-  { title: "Confidentiality Breach", scenario: "Your client, a VP of Sales, is paying for their own coaching. After a particularly difficult session where the client expressed serious doubts about their role, you receive an email from the company's Head of HR, who referred you to the client. The HR head asks for a 'quick, informal update' on how the coaching is going. What is your response?" },
+// These are now just a fallback in case firestore is empty
+const fallbackDilemmas = [
+  { title: "Conflict of Interest", scenario: "You are coaching a manager, Sarah... How do you proceed?" },
+  { title: "Confidentiality Breach", scenario: "Your client, a VP of Sales... What is your response?" },
   { title: "Coachability Concerns", scenario: "You have been coaching a client for three sessions. In each session, they agree to specific actions but consistently fail to complete them, often blaming external factors. They seem to enjoy the conversation but are not making any progress toward their stated goals. How do you address this in your next session?" },
   { title: "Blurred Boundaries", scenario: "Your client, with whom you've built a strong rapport over six months, invites you to a celebratory dinner with their family to mark the promotion they achieved through your coaching. They insist on paying and want you to attend as a guest of honor. How do you handle this invitation?" }
+// Add 1-2 more of your hardcoded ones here if you want
 ];
 
 
-const EthicalDilemmaSimulator = ({ setView, currentUser, dilemmaDocId, setDilemmaDocId }) => {
+// Note: 'dilemmaDocId' and 'setDilemmaDocId' props are no longer needed
+const EthicalDilemmaSimulator = ({ setView, currentUser }) => {
   const [dilemmaMode, setDilemmaMode] = useState('random');
-  const [dilemmasList, setDilemmasList] = useState(dilemmas);
-  const [currentDilemma, setCurrentDilemma] = useState(null);
+  const [dilemmasList, setDilemmasList] = useState(fallbackDilemmas); // Will be filled from Firestore
+  const [currentDilemma, setCurrentDilemma] = useState(null); // Will store { id, title, scenario }
   const [customDilemma, setCustomDilemma] = useState('');
   const [userResponse, setUserResponse] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [flowStep, setFlowStep] = useState('select'); // 'select', 'respond', 'feedback'
 
-  const loadRandomDilemma = useCallback(() => {
-    const randomIndex = Math.floor(Math.random() * dilemmasList.length);
-    setCurrentDilemma(dilemmasList[randomIndex]);
-    setUserResponse('');
-    setFeedback(null);
-  }, [dilemmasList]);
-
+  // --- NEW: Load public dilemmas from Firestore ---
   useEffect(() => {
-    loadRandomDilemma();
-  }, [loadRandomDilemma]);
+    const unsubscribe = onSnapshot(collection(db, "dilemmas"), (snapshot) => {
+        const communityDilemmas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const combined = [...fallbackDilemmas, ...communityDilemmas];
+        const uniqueDilemmas = Array.from(new Set(combined.map(p => p.title)))
+                                    .map(title => combined.find(p => p.title === title));
+        
+        setDilemmasList(uniqueDilemmas.length > 0 ? uniqueDilemmas : fallbackDilemmas);
+    }, (error) => {
+        console.error("Error fetching dilemmas: ", error);
+        setDilemmasList(fallbackDilemmas); // Fallback on error
+    });
 
+    // Clean up the listener
+    return () => unsubscribe();
+  }, []);
+
+  // --- NEW: Function to load a dilemma AND check for a user's prior solution ---
+  const loadDilemma = async (dilemma) => {
+    setCurrentDilemma(dilemma);
+    setUserResponse(''); // Clear previous response
+    setFeedback(null); // Clear previous feedback
+
+    // Check if this user already has a private solution for this dilemma
+    const solutionRef = doc(db, "dilemmas", dilemma.id, "solutions", currentUser.uid);
+    const solutionSnap = await getDoc(solutionRef);
+
+    if (solutionSnap.exists()) {
+      // If they do, load their old solution and feedback
+      setUserResponse(solutionSnap.data().solution || '');
+      setFeedback(solutionSnap.data().feedback || null);
+    }
+  };
+
+  const loadRandomDilemma = () => {
+    const randomIndex = Math.floor(Math.random() * dilemmasList.length);
+    // Use the new loadDilemma function
+    loadDilemma(dilemmasList[randomIndex]);
+  };
+
+  // Run 'loadRandomDilemma' once on mount after dilemmasList is populated
+  useEffect(() => {
+    if (dilemmasList.length > 0) {
+      loadRandomDilemma();
+    }
+  }, [dilemmasList]); // Re-run if dilemmasList changes
+
+  // --- UPDATED: This now creates the PUBLIC dilemma doc ---
   const handleDilemmaSubmit = async () => {
     setIsLoading(true);
-    let dilemmaText;
+    let dilemmaToProcess;
+
     if (dilemmaMode === 'random') {
         if (!currentDilemma) {
             alert("Please select a random dilemma first.");
             setIsLoading(false);
             return;
         }
-        dilemmaText = currentDilemma.scenario;
+        dilemmaToProcess = currentDilemma;
     } else { // 'custom'
         if (customDilemma.trim().length < 20) {
             alert("Please describe your dilemma in a bit more detail.");
             setIsLoading(false);
             return;
         }
-        dilemmaText = customDilemma;
+        // 1. Create the new PUBLIC dilemma document
+        try {
+            const docData = {
+              title: "Community-Submitted Dilemma",
+              scenario: customDilemma,
+              createdBy: currentUser.uid,
+              creatorEmail: currentUser.email,
+              timestamp: new Date()
+            };
+            const docRef = await addDoc(collection(db, "dilemmas"), docData);
+            dilemmaToProcess = { id: docRef.id, ...docData };
+        } catch (error) {
+            console.error("Error adding custom dilemma: ", error);
+            alert("Could not save your custom dilemma. Please try again.");
+            setIsLoading(false);
+            return;
+        }
     }
+
+    // 2. Load this dilemma (and any prior solution) into the response screen
+    await loadDilemma(dilemmaToProcess);
+    setFlowStep('respond');
+    setIsLoading(false);
+  };
+
+  // --- UPDATED: This now writes the PRIVATE solution doc ---
+  const handleSolutionSubmit = async () => {
+    if (!currentDilemma || !currentDilemma.id) {
+      alert("A critical error occurred. Please re-select a dilemma.");
+      return;
+    }
+    if (userResponse.trim().length < 10) {
+      alert("Please provide a more detailed response.");
+      return;
+    }
+    setIsLoading(true);
 
     try {
-        const docRef = await addDoc(collection(db, "dilemmas"), {
-            userId: currentUser.uid,
-            dilemma: dilemmaText,
-            timestamp: new Date()
-        });
-        setDilemmaDocId(docRef.id);
-        setFlowStep('respond');
+      // 1. Get a reference to the user's PRIVATE solution doc
+      // Path: /dilemmas/{dilemmaId}/solutions/{userId}
+      const solutionRef = doc(db, "dilemmas", currentDilemma.id, "solutions", currentUser.uid);
+
+      // 2. Save their solution there
+      await setDoc(solutionRef, { 
+        solution: userResponse,
+        dilemmaTitle: currentDilemma.title, // Good to store for context
+        timestamp: new Date()
+      }, { merge: true }); // Merge, so we don't overwrite feedback
+
+      // 3. Get AI feedback
+      const feedbackSchema = {
+        type: "OBJECT",
+        properties: {
+          strengths: { type: "STRING", description: "Positive aspects." },
+          pitfalls: { type: "STRING", description: "Potential risks." },
+          alternatives: { type: "STRING", description: "Alternative actions." }
+        },
+        required: ["strengths", "pitfalls", "alternatives"]
+      };
+      const feedbackPrompt = `
+        You are an ICF MCC. Dilemma: "${currentDilemma.scenario}"
+        Solution: "${userResponse}"
+        Analyze based on ICF Code of Ethics. Return JSON: "strengths", "pitfalls", "alternatives".
+      `;
+      const result = await callGeminiAPI(feedbackPrompt, feedbackSchema);
+      
+      // 4. Save the AI feedback to that SAME private doc
+      await setDoc(solutionRef, { feedback: result }, { merge: true });
+
+      setFeedback(result);
+      setFlowStep('feedback');
+
     } catch (error) {
-        console.error("Error adding document: ", error);
-        alert("Could not save dilemma. Please try again.");
+      console.error("Error submitting solution or getting feedback:", error);
+      alert("Error saving your solution. Check console for details.");
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-};
-
-const handleSolutionSubmit = async () => {
-  if (!dilemmaDocId) {
-    console.error("Dilemma Document ID is missing.");
-    alert("A critical error occurred. Please refresh and try again.");
-    return;
-  }
-
-  if (userResponse.trim().length < 10) {
-    alert("Please provide a more detailed response.");
-    return;
-  }
-  setIsLoading(true);
-
-  try {
-    const dilemmaRef = doc(db, "dilemmas", dilemmaDocId);
-    await updateDoc(dilemmaRef, {
-      solution: userResponse
-    });
-    console.log("Firestore update successful. Document ID:", dilemmaDocId);
-
-  } catch (error) {
-    console.error("FIRESTORE UPDATE FAILED:", error);
-    alert("Error saving your solution. Check console for details.");
-    setIsLoading(false);
-    return;
-  }
-
-  try {
-    const dilemmaText = dilemmaMode === 'random' ? currentDilemma.scenario : customDilemma;
-
-    const feedbackSchema = {
-      type: "OBJECT",
-      properties: {
-        strengths: { type: "STRING", description: "Positive aspects." },
-        pitfalls: { type: "STRING", description: "Potential risks." },
-        alternatives: { type: "STRING", description: "Alternative actions." }
-      },
-      required: ["strengths", "pitfalls", "alternatives"]
-    };
-
-    const feedbackPrompt = `
-      You are an ICF MCC. Dilemma: "${dilemmaText}"
-      Solution: "${userResponse}"
-      Analyze based on ICF Code of Ethics. Return JSON: "strengths", "pitfalls", "alternatives".
-    `;
-
-    const result = await callGeminiAPI(feedbackPrompt, feedbackSchema);
-    setFeedback(result);
-    setFlowStep('feedback');
-
-  } catch (error) {
-    console.error("GEMINI API CALL FAILED:", error);
-    alert("Error getting AI feedback. Check console.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
 
   return (
@@ -173,11 +229,11 @@ const handleSolutionSubmit = async () => {
             </>
         )}
 
-        {flowStep === 'respond' && (
+        {flowStep === 'respond' && currentDilemma && (
             <>
                 <div className="p-4 bg-slate-50 rounded-lg mb-6">
-                    <h2 className="font-bold text-lg">The Dilemma:</h2>
-                    <p className="italic mt-2">"{dilemmaMode === 'random' ? currentDilemma.scenario : customDilemma}"</p>
+                    <h2 className="font-bold text-lg">The Dilemma: ({currentDilemma.title})</h2>
+                    <p className="italic mt-2">"{currentDilemma.scenario}"</p>
                 </div>
                 <div>
                     <label htmlFor="user-response" className="block text-lg font-semibold text-slate-700 mb-2">How would you handle this?</label>
@@ -191,13 +247,13 @@ const handleSolutionSubmit = async () => {
             </>
         )}
 
-      {isLoading && <LoadingSpinner text="Analyzing your response..." />}
+      {isLoading && flowStep !== 'respond' && <LoadingSpinner text="Analyzing your response..." />}
 
-      {feedback && (
+      {flowStep === 'feedback' && feedback && currentDilemma && (
          <div>
             <div className="p-4 bg-slate-100 rounded-lg mb-6">
-                 <h2 className="font-bold text-lg">The Dilemma:</h2>
-                <p className="italic mt-2">"{dilemmaMode === 'random' ? currentDilemma.scenario : customDilemma}"</p>
+                 <h2 className="font-bold text-lg">The Dilemma: ({currentDilemma.title})</h2>
+                <p className="italic mt-2">"{currentDilemma.scenario}"</p>
             </div>
             <div className="p-4 bg-stone-50 rounded-lg mb-6">
                 <h2 className="font-bold text-lg">Your Response:</h2>

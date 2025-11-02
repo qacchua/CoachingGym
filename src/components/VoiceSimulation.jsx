@@ -4,15 +4,17 @@ import Card from './Card';
 import Button from './Button';
 import IconWrapper from './IconWrapper';
 import LoadingSpinner from './LoadingSpinner';
-import { callGeminiAPI, generateImageAPI } from '../utils/api'; // Assuming api utils
-import { base64ToArrayBuffer, pcmToWav } from '../utils/tts'; // Assuming tts utils
-import { firebaseConfig } from '../firebaseConfig'; // Assuming firebase config
-import { collection, addDoc, onSnapshot } from "firebase/firestore"; // Import Firestore functions if needed
-import { db } from '../firebaseConfig'; // Assuming db export from firebaseConfig
+import { callGeminiAPI, generateImageAPI } from '../utils/api';
+import { base64ToArrayBuffer, pcmToWav } from '../utils/tts';
+import { firebaseConfig } from '../firebaseConfig';
+// Import 'collection', 'addDoc', and 'onSnapshot'
+import { collection, addDoc, onSnapshot } from "firebase/firestore";
+// Correct the db import path to App.jsx
+import { db } from '../App.jsx';
 
 const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
   const [simulationStep, setSimulationStep] = useState('options');
-  const [personas, setPersonas] = useState([]);
+  const [personas, setPersonas] = useState([]); // Will be populated from Firestore
   const [persona, setPersona] = useState(null);
   const [personaImage, setPersonaImage] = useState(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -223,24 +225,61 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
     return `Role-play as: Name: ${p.name || 'Alex'}, Role: ${p.role} (${p.industry || 'any'}). Challenges: "${p.challenges}". Goals: "${p.goals}". Internal State: "${p.internalState}". Key People: "${p.keyPeople}". Embody state, use names, be realistic.`;
   };
 
-  const defaultPersonas = [
-    { name: 'Alex Chen', gender: 'Female', industry: 'Tech Startup', role: 'New Manager', challenges: "Drowning in work, don't trust team. Ben missed deadline, fixed it myself. Feel like I must do everything.", goals: "Delegate effectively without losing control. Trust team, especially Sarah, but fear failure.", internalState: "Anxious, frustrated, micromanaging but can't stop. Worried about burnout.", keyPeople: "Ben (Direct Report) - Missed deadline. Sarah (DR) - Has potential." },
-    { name: 'Maria Rodriguez', gender: 'Female', industry: 'Corp Finance', role: 'Senior Exec', challenges: "Felt nothing in Q3 planning with boss Cynthia. Hit targets, but going through motions. Promotion feels empty.", goals: "Understand disconnect. Is it job or me? Want passion again, maybe drastic change.", internalState: "Numb, apathetic, trapped. Guilty for not appreciating success. Confused.", keyPeople: "Cynthia (Boss, SVP) - Supportive but high-pressure." },
-    { name: 'Sam Jones', gender: 'Male', industry: 'Marketing', role: 'Creative Director', challenges: "Peer David undermines team in meetings. It's political, morale suffering. Avoid confronting him.", goals: "Address conflict constructively, protect team without escalating war.", internalState: "Frustrated, conflict-avoidant, protective. Powerless, resentful.", keyPeople: "David (Peer) - Undermines team. My Team - Morale dropping." },
-  ];
+  // --- defaultPersonas array is REMOVED ---
 
+  // --- This useEffect now fetches from Firestore ---
   useEffect(() => {
-    // No Firestore connection in this refactor step
-    setPersonas(defaultPersonas);
-  }, []);
+     // Keep a few defaults as a fallback in case Firestore is empty/fails
+     const fallbackPersonas = [
+        { name: 'Alex Chen', gender: 'Female', industry: 'Tech Startup', role: 'New Manager', challenges: "Drowning in work, don't trust team. Ben missed deadline, fixed it myself. Feel like I must do everything.", goals: "Delegate effectively without losing control. Trust team, especially Sarah, but fear failure.", internalState: "Anxious, frustrated, micromanaging but can't stop. Worried about burnout.", keyPeople: "Ben (Direct Report) - Missed deadline. Sarah (DR) - Has potential." },
+        { name: 'Maria Rodriguez', gender: 'Female', industry: 'Corp Finance', role: 'Senior Exec', challenges: "Felt nothing in Q3 planning with boss Cynthia. Hit targets, but going through motions. Promotion feels empty.", goals: "Understand disconnect. Is it job or me? Want passion again, maybe drastic change.", internalState: "Numb, apathetic, trapped. Guilty for not appreciating success. Confused.", keyPeople: "Cynthia (Boss, SVP) - Supportive but high-pressure." },
+     ];
 
+    const unsubscribe = onSnapshot(collection(db, "personas"), (snapshot) => {
+        const communityPersonas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Combine fallback and community personas, avoiding duplicates by name
+        const combined = [...fallbackPersonas, ...communityPersonas];
+        const uniquePersonas = Array.from(new Set(combined.map(p => p.name)))
+                                    .map(name => combined.find(p => p.name === name));
+        
+        setPersonas(uniquePersonas.length > 0 ? uniquePersonas : fallbackPersonas);
+    }, (error) => {
+        console.error("Error fetching personas: ", error);
+        setPersonas(fallbackPersonas); // Fallback on error
+    });
+
+    // Clean up the listener when the component unmounts
+    return () => unsubscribe();
+  }, []); // Empty array ensures this runs only on mount
+
+  // --- This function now saves to Firestore ---
   const startCustomSimulation = async () => {
       const { name, industry, role, challenges, goals, gender, internalState, keyPeople } = customPersona;
       if (!role || !challenges || !goals) { alert("Fill out Role, Challenges, Goals."); return; }
-      const newPersona = { name: name.trim() || `A ${role}`, industry: industry || 'Not specified', role, challenges, goals, gender, internalState, keyPeople };
+      
+      const newPersona = { 
+          name: name.trim() || `A ${role}`, 
+          industry: industry || 'Not specified', 
+          role, 
+          challenges, 
+          goals, 
+          gender, // Gender is included from the form
+          internalState: internalState || 'Not specified', 
+          keyPeople: keyPeople || 'Not specified',
+          createdBy: currentUser.uid, // Track who created it
+          creatorEmail: currentUser.email // Track who created it
+      };
+      
       startSimulationWithPersona(newPersona);
-       // Firestore save removed for this refactor step
-      // try { await addDoc(collection(db, "personas"), newPersona); } catch (error) { console.error("Error adding persona:", error); }
+      
+      // Save the new persona to the public Firestore collection
+      try { 
+          await addDoc(collection(db, "personas"), newPersona); 
+      } catch (error) { 
+          console.error("Error adding persona:", error); 
+          // Don't block the user, just log the error
+      }
   };
 
   const startRandomSimulation = () => {
@@ -276,6 +315,16 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
                         <User className="w-24 h-24 text-slate-400" />
                     </div>
                 )}
+                {/* --- ADD THIS ENTIRE BLOCK --- */}
+        <div className="text-center w-full px-4">
+            <h2 className="text-2xl font-bold text-slate-800">{persona.name}</h2>
+            <p className="text-slate-600 italic">{persona.role}</p>
+            <div className="text-left text-sm mt-4 border-t pt-4">
+              <p className="text-slate-700"><strong>Challenges:</strong> {persona.challenges}</p>
+              <p className="text-slate-700 mt-2"><strong>Goals:</strong> {persona.goals}</p>
+            </div>
+        </div>
+        {/* --- END OF BLOCK TO ADD --- */}
                 <div className="text-center">
                     <button onClick={toggleListen} disabled={isSpeaking || isThinking} className={`relative w-24 h-24 rounded-full transition-all duration-300 ease-in-out flex items-center justify-center text-white disabled:opacity-50 ${isListening ? 'bg-red-500 animate-pulse' : 'bg-stone-600 hover:bg-stone-700'}`}>
                         <Mic size={40} />

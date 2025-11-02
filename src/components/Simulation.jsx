@@ -4,41 +4,52 @@ import Card from './Card';
 import Button from './Button';
 import IconWrapper from './IconWrapper';
 import LoadingSpinner from './LoadingSpinner';
-import { callGeminiAPI } from '../utils/api'; // Assuming api utils
-import { collection, addDoc, onSnapshot } from "firebase/firestore"; // Import Firestore functions
-import { db } from '../firebaseConfig'; // Assuming db export from firebaseConfig
+import { callGeminiAPI } from '../utils/api';
+// Import 'collection', 'addDoc', and 'onSnapshot'
+import { collection, addDoc, onSnapshot } from "firebase/firestore";
+// Correct the db import path to App.jsx
+import { db } from '../App.jsx';
 
 const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
     const [persona, setPersona] = useState(null);
-    const [personas, setPersonas] = useState([]);
+    const [personas, setPersonas] = useState([]); // Will be populated from Firestore
     const [history, setHistory] = useState([]);
     const [simulationStep, setSimulationStep] = useState('options');
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [loadingText, setLoadingText] = useState('');
-    const [customPersona, setCustomPersona] = useState({ name: '', industry: '', role: '', challenges: '', goals: '', internalState: '', keyPeople: '' });
+    const [customPersona, setCustomPersona] = useState({ name: '', industry: '', role: '', challenges: '', goals: '',gender: 'Female', internalState: '', keyPeople: '' });
     const [userInput, setUserInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showPersonaDetails, setShowPersonaDetails] = useState(false);
     const chatWindowRef = useRef(null);
 
-    // Default Personas (as Firestore fetch is removed in this step)
-     const defaultPersonas = [
-          { name: 'Alex Chen', gender: 'Female', industry: 'Tech Startup', role: 'New Manager', challenges: "Drowning in work, don't trust team. Ben missed deadline, fixed it myself. Feel like I must do everything.", goals: "Delegate effectively without losing control. Trust team, especially Sarah, but fear failure.", internalState: "Anxious, frustrated, micromanaging but can't stop. Worried about burnout.", keyPeople: "Ben (Direct Report) - Missed deadline. Sarah (DR) - Has potential." },
-          { name: 'Maria Rodriguez', gender: 'Female', industry: 'Corp Finance', role: 'Senior Exec', challenges: "Felt nothing in Q3 planning with boss Cynthia. Hit targets, but going through motions. Promotion feels empty.", goals: "Understand disconnect. Is it job or me? Want passion again, maybe drastic change.", internalState: "Numb, apathetic, trapped. Guilty for not appreciating success. Confused.", keyPeople: "Cynthia (Boss, SVP) - Supportive but high-pressure." },
-          { name: 'Sam Jones', gender: 'Male', industry: 'Marketing', role: 'Creative Director', challenges: "Peer David undermines team in meetings. It's political, morale suffering. Avoid confronting him.", goals: "Address conflict constructively, protect team without escalating war.", internalState: "Frustrated, conflict-avoidant, protective. Powerless, resentful.", keyPeople: "David (Peer) - Undermines team. My Team - Morale dropping." },
-   ];
+    // --- defaultPersonas array is REMOVED ---
 
+    // --- This useEffect now fetches from Firestore ---
      useEffect(() => {
-        // Use default personas directly in this refactored version
-        setPersonas(defaultPersonas);
-        // Firestore snapshot listener removed for this step
-        // const unsubscribe = onSnapshot(collection(db, "personas"), (snapshot) => {
-        //     const communityPersonas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        //     const combined = [...defaultPersonas, ...communityPersonas];
-        //     const uniquePersonas = Array.from(new Set(combined.map(p => p.name))).map(name => combined.find(p => p.name === name));
-        //     setPersonas(uniquePersonas);
-        // });
-        // return () => unsubscribe();
-    }, []);
+        // Keep a few defaults as a fallback in case Firestore is empty/fails
+        const fallbackPersonas = [
+             { name: 'Alex Chen', gender: 'Female', industry: 'Tech Startup', role: 'New Manager', challenges: "Drowning in work, don't trust team. Ben missed deadline, fixed it myself. Feel like I must do everything.", goals: "Delegate effectively without losing control. Trust team, especially Sarah, but fear failure.", internalState: "Anxious, frustrated, micromanaging but can't stop. Worried about burnout.", keyPeople: "Ben (Direct Report) - Missed deadline. Sarah (DR) - Has potential." },
+             { name: 'Maria Rodriguez', gender: 'Female', industry: 'Corp Finance', role: 'Senior Exec', challenges: "Felt nothing in Q3 planning with boss Cynthia. Hit targets, but going through motions. Promotion feels empty.", goals: "Understand disconnect. Is it job or me? Want passion again, maybe drastic change.", internalState: "Numb, apathetic, trapped. Guilty for not appreciating success. Confused.", keyPeople: "Cynthia (Boss, SVP) - Supportive but high-pressure." }
+        ];
+
+        const unsubscribe = onSnapshot(collection(db, "personas"), (snapshot) => {
+            const communityPersonas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            // Combine fallback and community personas, avoiding duplicates by name
+            const combined = [...fallbackPersonas, ...communityPersonas];
+            const uniquePersonas = Array.from(new Set(combined.map(p => p.name)))
+                                        .map(name => combined.find(p => p.name === name));
+            
+            setPersonas(uniquePersonas.length > 0 ? uniquePersonas : fallbackPersonas);
+        }, (error) => {
+            console.error("Error fetching personas: ", error);
+            setPersonas(fallbackPersonas); // Fallback on error
+        });
+
+        // Clean up the listener when the component unmounts
+        return () => unsubscribe();
+    }, []); // The empty array ensures this runs only once
 
 
     const createDescriptionFromPersona = (p) => {
@@ -123,6 +134,7 @@ const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
      }
   }, [history, setView, setEvaluationResult]);
 
+    // --- This function now saves to Firestore ---
     const startCustomSimulation = async () => {
         const { name, industry, role, challenges, goals, internalState, keyPeople } = customPersona;
         if (!role || !challenges || !goals) {
@@ -132,17 +144,28 @@ const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
 
         const newPersonaObject = {
             name: name.trim() || `A ${role}`,
-            industry, role, challenges, goals, internalState, keyPeople
-            // Removed createdBy/creatorEmail for this step
+            industry: industry || 'Not specified',
+            role,
+            challenges,
+            goals,
+            internalState: internalState || 'Not specified',
+            keyPeople: keyPeople || 'Not specified',
+            gender: customPersona.gender, 
+            createdBy: currentUser.uid, // Track who created it
+            creatorEmail: currentUser.email // Track who created it
         };
 
         setPersona(newPersonaObject);
         setHistory([{role: 'model', text: `Hello, coach. Thanks for meeting with me.`}]);
         setSimulationStep('chat');
 
-        // Firestore save removed for this refactor step
-        // try { await addDoc(collection(db, "personas"), newPersonaObject); }
-        // catch (error) { console.error("Error adding custom persona:", error); }
+        // Save the new persona to the public Firestore collection
+        try {
+            await addDoc(collection(db, "personas"), newPersonaObject);
+        } catch (error) {
+            console.error("Error adding custom persona to Firestore: ", error);
+            // Don't block the user, just log the error
+        }
     };
 
     const startRandomSimulation = () => {
@@ -204,6 +227,21 @@ const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
                 <div className="space-y-4">
                     {/* Form inputs identical to original component */}
                     <div> <label htmlFor="persona-name">Name (Optional)</label> <input type="text" id="persona-name" value={customPersona.name} onChange={(e) => setCustomPersona({...customPersona, name: e.target.value})} placeholder="e.g., Alex Chen" className="w-full p-2 border rounded-lg"/> </div>
+                    {/* --- ADD THIS BLOCK FOR GENDER --- */}
+                    <div>
+                        <label className="block text-slate-700 mb-2">Gender</label>
+                        <div className="flex gap-4">
+                            <label className="flex items-center">
+                                <input type="radio" name="gender" value="Female" checked={customPersona.gender === 'Female'} onChange={(e) => setCustomPersona({...customPersona, gender: e.g.target.value})} className="h-4 w-4 text-stone-600" />
+                                <span className="ml-2 text-slate-700">Female</span>
+                            </label>
+                            <label className="flex items-center">
+                                <input type="radio" name="gender" value="Male" checked={customPersona.gender === 'Male'} onChange={(e) => setCustomPersona({...customPersona, gender: e.target.value})} className="h-4 w-4 text-stone-600" />
+                                <span className="ml-2 text-slate-700">Male</span>
+                            </label>
+                        </div>
+                    </div>
+                    {/* --- END OF BLOCK TO ADD --- */}
                     <div> <label htmlFor="persona-role">Role</label> <input type="text" id="persona-role" value={customPersona.role} onChange={(e) => setCustomPersona({...customPersona, role: e.target.value})} placeholder="e.g., New Manager" className="w-full p-2 border rounded-lg"/> </div>
                     <div> <label htmlFor="persona-challenges">Specific Challenges</label> <textarea id="persona-challenges" value={customPersona.challenges} onChange={(e) => setCustomPersona({...customPersona, challenges: e.target.value})} placeholder="e.g., My direct report, Ben, missed a deadline..." className="w-full h-24 p-2 border rounded-lg"/> </div>
                     <div> <label htmlFor="persona-goals">Goals for the session</label> <textarea id="persona-goals" value={customPersona.goals} onChange={(e) => setCustomPersona({...customPersona, goals: e.target.value})} placeholder="e.g., Learn how to delegate..." className="w-full h-24 p-2 border rounded-lg"/> </div>
@@ -217,7 +255,26 @@ const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
 
       return ( // simulationStep === 'chat'
         <Card className="max-w-4xl mx-auto h-[85vh] flex flex-col">
-           <div className="flex justify-between items-center mb-4 pb-4 border-b"> <div> <h1 className="text-2xl font-bold">Coaching Simulation</h1> <p>You are coaching. Type below.</p> </div> <Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm">&larr; Back</Button> </div>
+           <div className="flex justify-between items-center mb-4 pb-4 border-b"> <div> <h1 className="text-2xl font-bold">Coaching Simulation</h1> <p>You are coaching. Type below.</p> </div> <div className="flex-shrink-0 flex gap-2">
+          <Button onClick={() => setShowPersonaDetails(!showPersonaDetails)} variant="secondary" className="px-3 py-1 text-sm">
+            {showPersonaDetails ? 'Hide' : 'Show'} Details
+          </Button>
+          <Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm">&larr; Back</Button> 
+       </div>
+    </div>
+    
+     {/* --- ADD THIS CONDITIONAL BLOCK --- */}
+     {showPersonaDetails && (
+      <div className="p-4 bg-slate-50 rounded-lg mb-4 text-sm border">
+        <h4 className="font-bold text-stone-700">Persona Details</h4>
+        <p className="mt-1"><strong>Name:</strong> {persona.name}</p>
+        <p className="mt-1"><strong>Role:</strong> {persona.role}</p>
+        <p className="mt-1"><strong>Challenges:</strong> {persona.challenges}</p>
+        <p className="mt-1"><strong>Goals:</strong> {persona.goals}</p>
+      </div>
+     )}
+     {/* --- END ADD --- */}
+
           <div ref={chatWindowRef} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6">
             {history.map((msg, index) => (
               <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
