@@ -69,7 +69,7 @@ const callGeminiAPI = async (prompt, responseSchema) => {
       }
     };
     
-    const apiKey = ""; 
+    const apiKey = firebaseConfig.apiKey; 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
     
     let response;
@@ -112,7 +112,7 @@ const callGeminiAPI = async (prompt, responseSchema) => {
 
 const generateImageAPI = async (prompt) => {
     const payload = { instances: [{ prompt }], parameters: { "sampleCount": 1 } };
-    const apiKey = "";
+    const apiKey = firebaseConfig.apiKey;
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
 
     let response;
