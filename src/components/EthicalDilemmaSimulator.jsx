@@ -15,91 +15,126 @@ import {
   getDoc,  // Use getDoc to check for an existing solution
   onSnapshot // Use onSnapshot to get the public dilemma list
 } from "firebase/firestore"; 
-import { db } from '../App.jsx'; // Correct db import
+import { db } from '../firebaseConfig.js';
 
 // These are now just a fallback in case firestore is empty
 const fallbackDilemmas = [
   
-  { title: "Coachability Concerns", scenario: "You have been coaching a client for three sessions. In each session, they agree to specific actions but consistently fail to complete them, often blaming external factors. They seem to enjoy the conversation but are not making any progress toward their stated goals. How do you address this in your next session?" },
-  { title: "Blurred Boundaries", scenario: "Your client, with whom you've built a strong rapport over six months, invites you to a celebratory dinner with their family to mark the promotion they achieved through your coaching. They insist on paying and want you to attend as a guest of honor. How do you handle this invitation?" },
-  {    title: "Duty to Disclose Harm",
-    scenario: "A client reveals they are engaging in illegal activities that pose a potential, but not immediate, risk of danger to others. How do you handle this situation?"
+  { id: "fallback-1", title: "Coachability Concerns", scenario: "You have been coaching a client for three sessions. In each session, they agree to specific actions but consistently fail to complete them, often blaming external factors. They seem to enjoy the conversation but are not making any progress toward their stated goals. How do you address this in your next session?" },
+  { id: "fallback-2",  title: "Blurred Boundaries", scenario: "Your client, with whom you've built a strong rapport over six months, invites you to a celebratory dinner with their family to mark the promotion they achieved through your coaching. They insist on paying and want you to attend as a guest of honor. How do you handle this invitation?" },
+  { id: "fallback-3",
+    title: "Duty to Disclose Harm",
+    scenario: "Your client, a mid-level manager, casually mentions cutting corners on safety protocols for a new product to meet a deadline. They say, It's just paperwork, no one will get hurt, but you know this product is used by the public. The risk isn't immediate, but it's real and could cause future harm. Given this isn't an imminent threat, what is your ethical obligation, and what action, if any, do you take?"
   },
   {
+    id: "fallback-4", 
     title: "Corporate Confidentiality",
-    scenario: "Your client's sponsor (their employer) asks for specific details about the client's performance and personal challenges discussed during sessions. What is the most appropriate response for a coach?"
+    scenario: "You have a sponsorship triangle agreement. The client's sponsor, who is paying for the coaching, messages you: Just checking in on [Client]. We're finalizing promotion decisions, and I need to know if they've overcome those 'confidence issues' we talked about. Are they ready, or are they still struggling with their personal challenges?    How do you respond to the sponsor while upholding your ethical agreements with both parties?"
   },
   {
+    id: "fallback-5",
     title: "Use of AI Technology",
-    scenario: "You wish to use an AI-powered transcription service for session notes, which you currently use without informing clients. Analyze this from an ethical perspective"
+    scenario: "You've been using a powerful AI transcription tool to save time on session notes, but you never added this to your client agreement. You just read an article about how these AI companies use data for training. You now realize you've retroactively breached confidentiality for dozens of clients.    What steps must you take now to address this past and present ethical breach?"
   },
   {
+    id: "fallback-6",
     title: "Inadvertent Data Breach",
-    scenario: "You accidentally send a client's coaching notes to the wrong email address, which belongs to another client. What are your possible next steps?"
+    scenario: "You just finished a session with Client A and quickly typed up notes, which included their deep anxieties about their manager. You intended to email the notes to yourself but, due to an email autocomplete, accidentally sent them to Client B... who works at the same company.    What are your immediate three steps, and in what order?"
   },
   {
+    id: "fallback-7",
     title: "Legal Subpoena",
-    scenario: "You receive a valid court order (subpoena) demanding the release of all records and notes from a coaching engagement. What would be your next course of action?"
+    scenario: "A courier delivers a valid subpoena from a court. It demands all notes, emails, and records related to a former client who is now in a messy employment lawsuit. Your notes are informal and include your own speculative hypotheses and the client's raw, unverified statements about their colleagues.    What is your ethical and legal responsibility, and how do you proceed?"
   },
   {
+    id: "fallback-8",
     title: "Client Use of Recording",
-    scenario: "You discover your client has been secretly recording all their coaching sessions to analyze your coaching style with their own AI tools. How will you as a coach address this situation?"
+    scenario: "In a session, your client's phone rings and as they silence it, you see an audio recording app is active and has been running for 45 minutes. When you ask, they say, Oh, I record all our sessions. I use an AI to analyze your speech patterns and question types. I hope that's okay.    How do you address this in the moment, and what does this mean for the coaching relationship?"
   },
   {
+    id: "fallback-9",
     title: "Dual Role: Manager/Coach",
-    scenario: "You are asked to provide formal coaching to one of your direct reports or a team you manage. Discuss your next steps"
+    scenario: "Your direct report is struggling with performance. Your company advocates for coach-like management. The employee asks you for real coaching to help them improve, separate from your performance reviews. They say they trust you and don't want to go to an external coach.    How do you navigate this request, and what boundaries must be established, if you even agree at all?"
   },
   {
+    id: "fallback-10",
     title: "Developing a Romantic Relationship",
-    scenario: "You feel a growing personal attraction to a current client, and the feeling appears to be mutual. What are your options from an ethical perspective?"
+    scenario: "You've been coaching a client for six months, and the rapport is incredible. Lately, you realize your feelings are shifting from professional to personal, and they've started making comments that suggest the attraction is mutual (e.g., I wish I could meet someone like you outside of this).    What action must you take immediately to manage this conflict of interest?"
   },
   {
+    id: "fallback-11",
     title: "Bartering Services",
-    scenario: "A client is a graphic designer who offers to redesign your website in exchange for a series of coaching sessions. Would you consider taking the offer?"
+    scenario: "Your client, a highly skilled graphic designer, is struggling financially. They say, I can't afford your next package, but my business is failing because my website is a mess. What if you coach me for three months, and I completely redesign your brand and website? You badly need a new website.    How do you evaluate this offer, and what are the primary risks you must consider?"
   },
   {
+    id: "fallback-12",
     title: "Referral Commissions",
-    scenario: "You refer a client to a therapist you often collaborate with and receive a commission for the referral. What are the most ethical options here?"
+    scenario: "You often refer clients who need therapy to a specific psychologist. The psychologist suggests a formal partnership: You send them to me, I'll send you 10% of their first three sessions as a thank-you. It's just a standard referral fee. This could create a good secondary income stream.    How do you respond to the psychologist's offer?"
   },
   {
+    id: "fallback-13",
     title: "Coaching a Friend",
-    scenario: "A close friend asks you to provide them with professional coaching services to help them with a work crisis. Discuss what are your best options from a coaching perspective."
+    scenario: "Your best friend is facing a major career crisis and asks you to be their professional coach. They say, I only trust you, and you're the best. Please help me. They are insistent that they can separate the friendship from the coaching and will pay your full rate.    What do you tell your friend, and what are the ethical implications of both accepting and refusing?"
   },
   {
-    title: "Misrepresentation of Credentials",
-    scenario: "You find a coach's website where they claim to have a Master Certified Coach (MCC) credential even though you know they only have an ACC. What would you do in this situation?"
+    id: "fallback-14",
+    title: "Ambiguous Feel Structure",
+    scenario: "A potential client is a startup founder seeking funding. They can't afford your fee. They propose: I'll pay you 5% of my total seed round, but only if we're successful. You'll be coaching me on the pitch. If I get $1M, you get $50k. This is vastly more than your normal rate. <Wbr>   What are the ethical conflicts in this success fee arrangement, and how do you respond?"
   },
   {
+    id: "fallback-15",
     title: "Client Harassment in the Workplace",
-    scenario: "Your client confides they are a victim of severe workplace harassment and is unsure how to proceed. Discuss your next options."
+    scenario: "Your client confides in you, with specific and credible details, that their manager is severely harassing them. The client is terrified of retaliation, doesn't want to go to HR, and says, I'm only telling you because I trust you. Please don't make me do anything. I just need to vent.    What is your role and responsibility as a coach in this situation, and what resources or perspectives can you offer without overstepping?"
   },
   {
+    id: "fallback-16",
     title: "Conflict of Values",
-    scenario: "A client's value system (e.g., prioritizing profit over environmental concerns) fundamentally clashes with your personal core values. How will you address this situation?"
+    scenario: "You are a coach who deeply values environmental sustainability. A client's primary goal is to maximize profits for their new business, and their strategy involves using cheap, non-sustainable materials and working around environmental regulations. You find their goals morally repugnant.    How do you maintain a non-judgmental coaching presence when a client's core values are in direct conflict with your own?"
   },
   {
+    id: "fallback-17",
     title: "Doing Good vs. Avoiding Harm",
-    scenario: "You believe a client's decision is deeply misguided and likely to cause harm to their career, but it is not illegal or immediately dangerous. What would be your preferred next steps?"
+    scenario: "You are coaching a client who is about to make a major career decision (e.g., leaving a stable job to join a startup) that, based on all their own evidence, seems deeply misguided and likely to fail. You strongly believe it will harm their career and family. It is not illegal or unsafe, just a (in your opinion) terrible idea.    What is your role? Do you challenge them directly (This is a bad idea) or maintain a neutral stance and let them own their choice, even if you see it leading to harm?"
   },
   {
+    id: "fallback-18",
     title: "Team Coaching Confidentiality",
-    scenario: "In a team coaching setting, one member shares sensitive, individual information that is relevant to the team's progress but asks you not to share it. What would you be doing next?"
+    scenario: "You are coaching a leadership team struggling with lack of trust. In a 1-on-1 breakout, one member confides that the real reason for the trust issue is that the team leader is actively interviewing for a job at a competitor and everyone suspects it. They then say, But you can't tell anyone I told you.    How do you use this information (or not) for the benefit of the team, while honoring the individual's request for confidentiality?"
   },
   {
+    id: "fallback-19",
     title: "AI Bias and Fairness",
-    scenario: "You are using an AI tool that provides a \"performance score\" for clients, but you suspect the algorithm might have cultural biases. Identify your next course of action"
+    scenario: "You are using a new AI-powered coaching assistant tool that provides a performance score for clients based on their language. You notice that clients who are non-native English speakers consistently receive lower clarity and confidence scores, which you suspect is algorithmic bias.    What is your ethical responsibility regarding the use of a tool that you suspect is biased, and what action should you take?"
   },
   {
+    id: "fallback-20",
     title: "Coach Supervision Hesitation",
-    scenario: "You face a complex ethical title but are hesitant to bring it to supervision because it feels \"too personal\" or a breach of client trust. What will you do next?"
+    scenario: "You are facing a complex dilemma with a client that blends a boundary-crossing dual relationship and a confidentiality grey area. You know you should take it to your coach supervisor, but you are hesitant because you fear your supervisor will judge you for letting it get this far.    What is the ethical imperative of supervision, and how do you overcome your own ego and fear to get the help you need?"
   },
   {
+    id: "fallback-21",
     title: "Client Feedback and Humility",
-    scenario: "A client provides harsh feedback, suggesting your coaching style is condescending. What will you do next?"
+    scenario: "At the end of a 3-month engagement, a client gives you blunt feedback: I feel like you were just phoning it in. You seemed distracted, and your questions were just generic 'coaching 101' prompts. I didn't get much value. This feedback stings, and your first instinct is to be defensive.    What is your ethical and professional responsibility in responding to this feedback?"
   },
   {
+    id: "fallback-22",
     title: "Inappropriate Use of ICF Logo",
-    scenario: "Another coach you know is using the ICF logo in a way that suggests ICF endorsement of a non-accredited program. What do you do?"
+    scenario: "You are on the website of a respected colleague and mentor. You notice they are using the official ICF Accredited Coach Training Program (ACTP) logo to advertise a short weekend workshop they designed, which you know has no formal ICF accreditation.    What, if anything, is your responsibility to your colleague, the ICF, and the public, and what action do you take?"
+  },
+  {
+    id: "fallback-23",
+    title: "Environmental and Social Responsibility",
+    scenario: "You are invited to bid on a large, lucrative contract to provide coaching for the entire senior leadership team of a multinational corporation. This company is globally known for its poor environmental practices and use of sweatshop labor. The money would be transformative for your practice.    How do you decide whether to accept or decline this contract, and what factors do you weigh in your decision?"
+  },
+   {
+    id: "fallback-24",
+    title: "Unsolicited Information from HR",
+    scenario: "You are having a routine call with the HR sponsor about logistics. They casually say - By the way [Client] is on the shortlist for a big promotion, but also on the Q3 'at-risk' list if their performance does not turn around. They do not know this. I hope your coaching works!   How do you ethically manage this insider information that you now hold, which directly impacts your client's coaching goals? "
+  },
+   {
+    id: "fallback-25",
+    title: "Unconscious Bias",
+    scenario: "Your client starts talking about their financial struggles and their background in a very low-income community. You realize you are feeling a sense of pity and find yourself softening your normally challenging questions, holding them less capable than your other high-earning clients.    Now that you've recognized this bias in-the-moment, what do you do to regain a non-judgmental presence and ensure it doesn't harm the client?"
   }
 ];
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
-import { db } from '../App.jsx';
+import { db } from '../firebaseConfig.js';
 import { doc, updateDoc } from "firebase/firestore"; 
 import Card from './Card';
 import Button from './Button';
@@ -25,7 +25,7 @@ const Profile = ({ setView, currentUser }) => {
   const [isSaving, setIsSaving] = useState(false);
   const auth = getAuth();
 
-  // --- 1. State for ALL form fields ---
+  // --- State for ALL form fields ---
   const [formData, setFormData] = useState({
     // Mandatory
     displayName: '',
@@ -57,7 +57,7 @@ const Profile = ({ setView, currentUser }) => {
     }
   });
 
-  // --- 2. Load currentUser data into the form state ---
+  // --- Load currentUser data into the form state ---
   useEffect(() => {
     if (currentUser) {
       setFormData({
@@ -78,7 +78,7 @@ const Profile = ({ setView, currentUser }) => {
     }
   }, [currentUser]);
 
-  // --- 3. Handlers to update the complex formData state ---
+  // --- Handlers to update the complex formData state ---
   const handleTextChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -111,7 +111,7 @@ const Profile = ({ setView, currentUser }) => {
     });
   };
 
-  // --- 4. Save function to update Firestore ---
+  // --- Save function to update Firestore ---
   const handleSaveProfile = async () => {
     setIsSaving(true);
     setMessage('');
@@ -120,8 +120,6 @@ const Profile = ({ setView, currentUser }) => {
     const userRef = doc(db, "users", currentUser.uid);
     
     try {
-      // This will update all fields in the formData object
-      // Your Firestore rule still protects 'tier', so this is safe.
       await updateDoc(userRef, formData);
       setMessage('Profile saved successfully!');
     } catch (err) {
@@ -131,7 +129,7 @@ const Profile = ({ setView, currentUser }) => {
     }
   };
 
-  // --- 5. Other functions (unchanged) ---
+  // --- Other functions ---
   const handlePasswordReset = async () => {
     setError('');
     setMessage('');
@@ -151,12 +149,22 @@ const Profile = ({ setView, currentUser }) => {
     return new Date(timestamp).toLocaleDateString();
   };
 
-  // --- 6. The new, expanded JSX ---
+  // --- The new, expanded JSX ---
   return (
     <Card className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start mb-6 gap-2">
         <h1 className="text-3xl font-bold text-slate-800">My Account</h1>
-        <Button onClick={() => setView('home')} variant="secondary" className="px-4 py-2 text-sm">&larr; Back to Home</Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button 
+            onClick={() => setView('publicProfile', { userId: currentUser.uid })} 
+            variant="secondary" 
+            className="px-4 py-2 text-sm"
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            Preview Public Profile
+          </Button>
+          <Button onClick={() => setView('home')} variant="secondary" className="px-4 py-2 text-sm">&larr; Back to Home</Button>
+        </div>
       </div>
 
       <div className="space-y-8">

@@ -10,7 +10,7 @@ import { firebaseConfig } from '../firebaseConfig';
 // Import 'collection', 'addDoc', and 'onSnapshot'
 import { collection, addDoc, onSnapshot } from "firebase/firestore";
 // Correct the db import path to App.jsx
-import { db } from '../App.jsx';
+import { db } from '../firebaseConfig.js';
 
 const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
   const [simulationStep, setSimulationStep] = useState('options');

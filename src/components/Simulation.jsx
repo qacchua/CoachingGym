@@ -8,7 +8,7 @@ import { callGeminiAPI } from '../utils/api';
 // Import 'collection', 'addDoc', and 'onSnapshot'
 import { collection, addDoc, onSnapshot } from "firebase/firestore";
 // Correct the db import path to App.jsx
-import { db } from '../App.jsx';
+import { db } from '../firebaseConfig.js';
 
 const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
     const [persona, setPersona] = useState(null);

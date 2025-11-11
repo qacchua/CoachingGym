@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
-import { db } from '../App.jsx';
+import { db } from '../firebaseConfig.js';
 import Card from './Card';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';

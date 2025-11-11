@@ -3,7 +3,7 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, Go
 
 // --- 1. IMPORT FIRESTORE FUNCTIONS & DB ---
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { db } from '../App.jsx'; // Import db from App.jsx
+import { db } from '../firebaseConfig.js'; // Import db from App.jsx
 
 import Card from './Card';
 import Button from './Button';

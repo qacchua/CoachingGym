@@ -28,6 +28,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import Chat from './components/Chat.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import Profile from './components/Profile.jsx';
+import PublicProfile from './components/PublicProfile.jsx';
 
 
 // Initialize Firebase
@@ -43,6 +44,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dilemmaDocId, setDilemmaDocId] = useState(null);
+  const [profileToViewId, setProfileToViewId] = useState(null);
 
   // --- Real-time Auth & Profile Listener ---
   useEffect(() => {
@@ -103,15 +105,25 @@ function App() {
     };
   }, []);
 
-  const handleSetView = (newView) => {
+ const handleSetView = (newView, payload = null) => {
     if (newView === 'logout') {
         signOut(auth);
         return;
     }
-    // Clear old evaluation report when moving away from the result screen
+    
+    // Clear old data when navigating
     if (view === 'result' && newView !== 'result') {
       setEvaluationResult(null);
     }
+    if (newView !== 'publicProfile') {
+      setProfileToViewId(null);
+    }
+    
+    // Handle payload for public profile view
+    if (newView === 'publicProfile' && payload && payload.userId) {
+      setProfileToViewId(payload.userId);
+    }
+
     setView(newView);
   }
 
@@ -126,16 +138,15 @@ function App() {
           <AuthComponent />
         ) : (
            <>
-            <Header /> {/* Header shown when logged in */}
-
+            <Header /> 
            {(() => {
-              // This prop object is passed to all components
               const props = {
-                setView: handleSetView,
+                setView: handleSetView, // This is now the enhanced function
                 setEvaluationResult,
-                currentUser, // This now contains { ...auth, ...profile }
+                currentUser,
                 dilemmaDocId,
                 setDilemmaDocId
+                // We don't pass setProfileToViewId, handleSetView does it
               };
 
             // --- Updated Switch Statement ---
@@ -149,6 +160,7 @@ function App() {
               case 'chat':          return <Chat {...props} />;
               case 'dashboard':     return <Dashboard {...props} />;
               case 'profile':       return <Profile {...props} />;
+              case 'publicProfile': return <PublicProfile {...props} viewingProfileId={profileToViewId} />; // <-- ADD ROUTE
               case 'home':
               default:              return <HomePage {...props} />;
             }
