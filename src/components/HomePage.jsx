@@ -10,7 +10,17 @@ const HomePage = ({ setView, currentUser }) => {
      <> {/* Fragment to wrap everything */}
       <div className="max-w-6xl mx-auto mb-8 flex justify-between items-center">
         <p className="text-slate-600">Signed in as: <span className="font-semibold">{currentUser.email || 'Guest'}</span></p>
-        <Button onClick={() => setView('logout')} variant="secondary">Sign Out</Button>
+      <div className="flex gap-4">
+          <Button onClick={() => setView('profile')} variant="secondary">
+            My Account
+          </Button>
+          <Button onClick={() => setView('dashboard')} variant="secondary">
+            My Dashboard
+          </Button>
+          <Button onClick={() => setView('logout')} variant="secondary">
+            Sign Out
+          </Button>
+        </div>
       </div>
 
      <div className="text-center">

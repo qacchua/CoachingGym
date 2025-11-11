@@ -1,5 +1,3 @@
-// src/components/Chat.jsx
-
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, onSnapshot, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from '../App.jsx'; // Correct db import
@@ -14,40 +12,36 @@ const Chat = ({ setView, currentUser }) => {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef(null);
 
-  // 1. Fetch the list of channels
+  // 1. Fetch the list of channels (no change)
   useEffect(() => {
     const q = query(collection(db, "channels"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const channelsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setChannels(channelsData);
     });
-    return () => unsubscribe(); // Cleanup listener
+    return () => unsubscribe();
   }, []);
 
-  // 2. Fetch messages for the *selected* channel
+  // 2. Fetch messages for the *selected* channel (no change)
   useEffect(() => {
     if (!selectedChannel) return;
-
-    // Create a query for the subcollection
     const q = query(
       collection(db, 'channels', selectedChannel, 'messages'),
-      orderBy('timestamp', 'asc'), // Order by time
+      orderBy('timestamp', 'asc'),
     );
-
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const messagesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setMessages(messagesData);
     });
+    return () => unsubscribe();
+  }, [selectedChannel]);
 
-    return () => unsubscribe(); // Cleanup listener on channel change
-  }, [selectedChannel]); // Re-run this when the channel changes
-
-  // 3. Auto-scroll to bottom of chat
+  // 3. Auto-scroll to bottom of chat (no change)
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 4. Handle sending a new message
+  // 4. Handle sending a new message (--- UPDATED ---)
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (newMessage.trim() === '') return;
@@ -57,7 +51,8 @@ const Chat = ({ setView, currentUser }) => {
         text: newMessage,
         timestamp: serverTimestamp(),
         userId: currentUser.uid,
-        userEmail: currentUser.email
+        userEmail: currentUser.email, // Still good to save this
+        displayName: currentUser.displayName // <-- THE NEW FIELD
       });
       setNewMessage('');
     } catch (error) {
@@ -67,7 +62,7 @@ const Chat = ({ setView, currentUser }) => {
 
   return (
     <Card className="max-w-6xl mx-auto h-[85vh] flex">
-      {/* Sidebar for Channels */}
+      {/* Sidebar for Channels (no change) */}
       <div className="w-1/4 border-r pr-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold">Channels</h2>
@@ -92,7 +87,7 @@ const Chat = ({ setView, currentUser }) => {
 
       {/* Main Chat Area */}
       <div className="w-3/4 flex flex-col pl-6">
-        {/* Chat Messages */}
+        {/* Chat Messages (--- UPDATED ---) */}
         <div className="flex-grow overflow-y-auto mb-4 space-y-4 pr-4 -mr-4">
           {messages.map(msg => (
             <div key={msg.id} className={`flex ${msg.userId === currentUser.uid ? 'justify-end' : ''}`}>
@@ -101,7 +96,10 @@ const Chat = ({ setView, currentUser }) => {
                   ? 'bg-stone-700 text-white' 
                   : 'bg-slate-100 text-slate-800'
               }`}>
-                <p className="text-xs font-bold opacity-70 mb-1">{msg.userEmail}</p>
+                {/* --- THIS LINE IS CHANGED --- */}
+                <p className="text-xs font-bold opacity-70 mb-1">
+                  {msg.displayName || msg.userEmail}
+                </p>
                 <p>{msg.text}</p>
               </div>
             </div>
@@ -109,7 +107,7 @@ const Chat = ({ setView, currentUser }) => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Message Input Form */}
+        {/* Message Input Form (no change) */}
         <form onSubmit={handleSendMessage} className="flex gap-4">
           <input
             type="text"
