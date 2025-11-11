@@ -19,11 +19,88 @@ import { db } from '../App.jsx'; // Correct db import
 
 // These are now just a fallback in case firestore is empty
 const fallbackDilemmas = [
-  { title: "Conflict of Interest", scenario: "You are coaching a manager, Sarah... How do you proceed?" },
-  { title: "Confidentiality Breach", scenario: "Your client, a VP of Sales... What is your response?" },
+  
   { title: "Coachability Concerns", scenario: "You have been coaching a client for three sessions. In each session, they agree to specific actions but consistently fail to complete them, often blaming external factors. They seem to enjoy the conversation but are not making any progress toward their stated goals. How do you address this in your next session?" },
-  { title: "Blurred Boundaries", scenario: "Your client, with whom you've built a strong rapport over six months, invites you to a celebratory dinner with their family to mark the promotion they achieved through your coaching. They insist on paying and want you to attend as a guest of honor. How do you handle this invitation?" }
-// Add 1-2 more of your hardcoded ones here if you want
+  { title: "Blurred Boundaries", scenario: "Your client, with whom you've built a strong rapport over six months, invites you to a celebratory dinner with their family to mark the promotion they achieved through your coaching. They insist on paying and want you to attend as a guest of honor. How do you handle this invitation?" },
+  {    title: "Duty to Disclose Harm",
+    scenario: "A client reveals they are engaging in illegal activities that pose a potential, but not immediate, risk of danger to others. How do you handle this situation?"
+  },
+  {
+    title: "Corporate Confidentiality",
+    scenario: "Your client's sponsor (their employer) asks for specific details about the client's performance and personal challenges discussed during sessions. What is the most appropriate response for a coach?"
+  },
+  {
+    title: "Use of AI Technology",
+    scenario: "You wish to use an AI-powered transcription service for session notes, which you currently use without informing clients. Analyze this from an ethical perspective"
+  },
+  {
+    title: "Inadvertent Data Breach",
+    scenario: "You accidentally send a client's coaching notes to the wrong email address, which belongs to another client. What are your possible next steps?"
+  },
+  {
+    title: "Legal Subpoena",
+    scenario: "You receive a valid court order (subpoena) demanding the release of all records and notes from a coaching engagement. What would be your next course of action?"
+  },
+  {
+    title: "Client Use of Recording",
+    scenario: "You discover your client has been secretly recording all their coaching sessions to analyze your coaching style with their own AI tools. How will you as a coach address this situation?"
+  },
+  {
+    title: "Dual Role: Manager/Coach",
+    scenario: "You are asked to provide formal coaching to one of your direct reports or a team you manage. Discuss your next steps"
+  },
+  {
+    title: "Developing a Romantic Relationship",
+    scenario: "You feel a growing personal attraction to a current client, and the feeling appears to be mutual. What are your options from an ethical perspective?"
+  },
+  {
+    title: "Bartering Services",
+    scenario: "A client is a graphic designer who offers to redesign your website in exchange for a series of coaching sessions. Would you consider taking the offer?"
+  },
+  {
+    title: "Referral Commissions",
+    scenario: "You refer a client to a therapist you often collaborate with and receive a commission for the referral. What are the most ethical options here?"
+  },
+  {
+    title: "Coaching a Friend",
+    scenario: "A close friend asks you to provide them with professional coaching services to help them with a work crisis. Discuss what are your best options from a coaching perspective."
+  },
+  {
+    title: "Misrepresentation of Credentials",
+    scenario: "You find a coach's website where they claim to have a Master Certified Coach (MCC) credential even though you know they only have an ACC. What would you do in this situation?"
+  },
+  {
+    title: "Client Harassment in the Workplace",
+    scenario: "Your client confides they are a victim of severe workplace harassment and is unsure how to proceed. Discuss your next options."
+  },
+  {
+    title: "Conflict of Values",
+    scenario: "A client's value system (e.g., prioritizing profit over environmental concerns) fundamentally clashes with your personal core values. How will you address this situation?"
+  },
+  {
+    title: "Doing Good vs. Avoiding Harm",
+    scenario: "You believe a client's decision is deeply misguided and likely to cause harm to their career, but it is not illegal or immediately dangerous. What would be your preferred next steps?"
+  },
+  {
+    title: "Team Coaching Confidentiality",
+    scenario: "In a team coaching setting, one member shares sensitive, individual information that is relevant to the team's progress but asks you not to share it. What would you be doing next?"
+  },
+  {
+    title: "AI Bias and Fairness",
+    scenario: "You are using an AI tool that provides a \"performance score\" for clients, but you suspect the algorithm might have cultural biases. Identify your next course of action"
+  },
+  {
+    title: "Coach Supervision Hesitation",
+    scenario: "You face a complex ethical title but are hesitant to bring it to supervision because it feels \"too personal\" or a breach of client trust. What will you do next?"
+  },
+  {
+    title: "Client Feedback and Humility",
+    scenario: "A client provides harsh feedback, suggesting your coaching style is condescending. What will you do next?"
+  },
+  {
+    title: "Inappropriate Use of ICF Logo",
+    scenario: "Another coach you know is using the ICF logo in a way that suggests ICF endorsement of a non-accredited program. What do you do?"
+  }
 ];
 
 

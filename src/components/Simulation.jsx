@@ -30,7 +30,297 @@ const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
         // Keep a few defaults as a fallback in case Firestore is empty/fails
         const fallbackPersonas = [
              { name: 'Alex Chen', gender: 'Female', industry: 'Tech Startup', role: 'New Manager', challenges: "Drowning in work, don't trust team. Ben missed deadline, fixed it myself. Feel like I must do everything.", goals: "Delegate effectively without losing control. Trust team, especially Sarah, but fear failure.", internalState: "Anxious, frustrated, micromanaging but can't stop. Worried about burnout.", keyPeople: "Ben (Direct Report) - Missed deadline. Sarah (DR) - Has potential." },
-             { name: 'Maria Rodriguez', gender: 'Female', industry: 'Corp Finance', role: 'Senior Exec', challenges: "Felt nothing in Q3 planning with boss Cynthia. Hit targets, but going through motions. Promotion feels empty.", goals: "Understand disconnect. Is it job or me? Want passion again, maybe drastic change.", internalState: "Numb, apathetic, trapped. Guilty for not appreciating success. Confused.", keyPeople: "Cynthia (Boss, SVP) - Supportive but high-pressure." }
+             { name: 'Maria Rodriguez', gender: 'Female', industry: 'Corp Finance', role: 'Senior Exec', challenges: "Felt nothing in Q3 planning with boss Cynthia. Hit targets, but going through motions. Promotion feels empty.", goals: "Understand disconnect. Is it job or me? Want passion again, maybe drastic change.", internalState: "Numb, apathetic, trapped. Guilty for not appreciating success. Confused.", keyPeople: "Cynthia (Boss, SVP) - Supportive but high-pressure." },
+             {
+        name: "Priya Sharma",
+        gender: "Female",
+        industry: "Technology / Software",
+        role: "Director of Product Management",
+        challenges: "My identity is tied to being the expert; I fear failure and becoming irrelevant if I fully delegate.",
+        goals: "Get practical time management and delegation strategies.",
+        internalState: "Overwhelmed, anxious, impatient.",
+        keyPeople: "Her boss, Mark (VP of Product)."
+    },
+    {
+        name: "David Chen",
+        gender: "Male",
+        industry: "Technology / Engineering",
+        role: "Senior Engineering Manager",
+        challenges: "I believe soft skills are useless; I am uncomfortable with emotions; my perfectionism prevents me from trusting my team.",
+        goals: "Learn to communicate better to satisfy his director after a bad 360 review.",
+        internalState: "Skeptical, reserved, defensive.",
+        keyPeople: "His boss, Susan (Director)."
+    },
+    {
+        name: "Maria Flores",
+        gender: "Female",
+        industry: "Fortune 100 Conglomerate",
+        role: "Head of People & Culture",
+        challenges: "I have extreme conflict avoidance; I fear being disliked; I prioritize harmony over accountability.",
+        goals: "Find a strategy to resolve a toxic conflict between two of her direct reports.",
+        internalState: "Anxious, worried, agreeable.",
+        keyPeople: "Conflicting reports:  Jessica and Ben."
+    },
+    {
+        name: "Alex Petrov",
+        gender: "Male",
+        industry: "Startup",
+        role: "Founder & CEO",
+        challenges: "I change priorities constantly; I struggle to translate vision into actionable steps; I get bored with execution details.",
+        goals: "Get his team to be more proactive and take more ownership.",
+        internalState: "Energetic, charming, but also frustrated.",
+        keyPeople: "His COO, Laura, who tries to manage the chaos."
+    },
+    {
+        name: "Sarah Jenkins",
+        gender: "Female",
+        industry: "Small Investment Bank",
+        role: "Chief Financial Officer",
+        challenges: "I feel my work is stale and unfulfilling; I am grappling with a loss of purpose and identity outside my successful career.",
+        goals: "Figure out a plan for the next phase of her career.",
+        internalState: "Bored, conflicted, guilty, analytical.",
+        keyPeople: "Her husband, David, who is supportive but doesn't understand."
+    },
+    {
+        name: "James Williams",
+        gender: "Male",
+        industry: "Advertising conglomerate",
+        role: "Art Director",
+        challenges: "I am a new manager and I am overwhelmed by the demands of leading a team; I struggle with setting boundaries and saying no.",
+        goals: "Get his team to produce higher quality work so he doesn't have to redo it himself.",
+        internalState: "Passionate, frustrated, defensive.",
+        keyPeople: "Two junior designers threatening to quit:  Leo and Mia."
+    },
+    {
+        name: "Dr. Emily Carter",
+        gender: "Female",
+        industry: "The largest hospital in a large metropolis",
+        role: "Chief of Surgery",
+        challenges: "I am a high-achiever who is constantly seeking external validation; I struggle with imposter syndrome and burnout.",
+        goals: "Find ways to reduce burnout and turnover in her department.",
+        internalState: "Confident, decisive, perhaps a bit annoyed.",
+        keyPeople: "A senior resident, Dr. Evans, who gave her direct feedback about her recent performance."
+    },
+    {
+        name: "Michael Thompson",
+        gender: "Male",
+        industry: "Tier 1 automotive supplier",
+        role: "VP of Sales",
+        challenges: "I am a creative who struggles with structure and discipline; I procrastinate and miss deadlines.",
+        goals: "Find a way to trust his team to close big deals so he can focus on strategy.",
+        internalState: "Charismatic, impatient, competitive.",
+        keyPeople: "His top Sales Director, Karen, who is ready for more responsibility."
+    },
+    {
+        name: "Chloe Davis",
+        gender: "Female",
+        industry: "Small insurance agency",
+        role: "New CEO (Internal Promote)",
+        challenges: "I am a seasoned executive who is resistant to change; I cling to old methods and fear disrupting the status quo.",
+        goals: "Gain confidence and stop feeling like a fraud in her new role.",
+        internalState: "Hesitant, anxious, seeks validation.",
+        keyPeople: "The Board Chairman, Mr. Harrison, who championed her promotion."
+    },
+    {
+        name: "Kenji Tanaka",
+        gender: "Male",
+        industry: "Pharmaceuticals",
+        role: "Head of R&D",
+        challenges: "I am a team player who avoids the spotlight; I struggle with self-promotion and advocating for my ideas.",
+        goals: "Get his team to think bigger and be more innovative.",
+        internalState: "Intellectual, calm, risk-averse.",
+        keyPeople: "A promising but cautious scientist on his team, Dr. Anya Sharma."
+    },
+    {
+        name: "Fatima Al-Jamil",
+        gender: "Female",
+        industry: "Big 3 Consumer Goods company",
+        role: "Head of Ops (Post-Merger)",
+        challenges: "I am a visionary leader who struggles with the day-to-day operations; I delegate poorly and micromanage when stressed.",
+        goals: "Find a way to successfully merge the two company cultures.",
+        internalState: "Stressed, diplomatic, overwhelmed.",
+        keyPeople: "Two vocal managers from each side:  Steve (old guard) and Nora (new way)."
+    },
+    {
+        name: "Ben Carter",
+        gender: "Male",
+        industry: "Startup",
+        role: "First-time Entrepreneur",
+        challenges: "I am a technical expert who struggles with communicating complex ideas to non-technical stakeholders; I get frustrated when others do not understand.",
+        goals: "Get help with being less overwhelmed and learning to prioritize.",
+        internalState: "Passionate, exhausted, scattered.",
+        keyPeople: "His co-founder, Sam, who is worried about Ben having burnout."
+    },
+    {
+        name: "Olivia Martinez",
+        gender: "Female",
+        industry: "Large manufacturing multinational",
+        role: "General Manager",
+        challenges: "I am a passionate advocate who struggles with diplomacy; I can be perceived as aggressive and confrontational.",
+        goals: "Figure out how to manage former peers who do not respect her new authority.",
+        internalState: "Empathetic, conflicted, harmonious.",
+        keyPeople: "Her former peer and now direct report, Chris."
+    },
+    {
+        name: "Samuel Jones",
+        gender: "Male",
+        industry: "Boutique law firm",
+        role: "Senior Partner, Law Firm",
+        challenges: "I am a natural networker who struggles with deep, meaningful connections; I have many acquaintances but few close confidantes.",
+        goals: "Find motivation for his last two years and explore what is next.",
+        internalState: "Esteemed, reflective, but also dismissive.",
+        keyPeople: "A junior partner he is supposed to mentor, Alicia."
+    },
+    {
+        name: "Dr. Aisha Adebayo",
+        gender: "Female",
+        industry: "Specialty Biotech company",
+        role: "Head of Medical Research",
+        challenges: "I am a data-driven decision-maker who struggles with intuition and emotional intelligence; I over-rely on logic and dismiss feelings.",
+        goals: "Learn how to get her strategic input taken seriously by the board and donors.",
+        internalState: "Brilliant, humble, frustrated.",
+        keyPeople: "The foundation main donor, Mrs. Gable who is going to make a decision on a big grant in the coming days and Aisha needs to impress her."
+    },
+    {
+        name: "Daniel Miller",
+        gender: "Male",
+        industry: "Large distribution warehouse",
+        role: "Plant Manager",
+        challenges: "I am a mentor who struggles with letting go and allowing others to make their own mistakes; I tend to rescue rather than empower.",
+        goals: "Figure out why his team never brings him problems until they are crises.",
+        internalState: "Results-oriented, impatient, intimidating.",
+        keyPeople: "His shift supervisor, Rick, who stopped reporting small issues."
+    },
+    {
+        name: "Isabella Rossi",
+        gender: "Female",
+        industry: "E-commerce startup",
+        role: "Founder, Fashion Brand",
+        challenges: "I am a strategic thinker who struggles with execution; I have great ideas but lack the follow-through to implement them.",
+        goals: "Find a better work-life balance without feeling like the business will fail.",
+        internalState: "Creative, driven, anxious, guilt-ridden.",
+        keyPeople: "Her sister, Maria, who is concerned about her health."
+    },
+    {
+        name: "Marcus Thorne",
+        gender: "Male",
+        industry: "Fortune 100 Technology company",
+        role: "Chief Information Officer",
+        challenges: "I am a resilient individual who struggles with asking for help; I believe I must handle everything myself.",
+        goals: "Get business units to adopt the new IT systems from his failing transformation project.",
+        internalState: "Logical, systematic, frustrated.",
+        keyPeople: "The head of Marketing, Brenda, who is his biggest critic and is waiting for Marcus to fail."
+    },
+    {
+        name: "Carlos Garcia",
+        gender: "Male",
+        industry: "Government / public sector",
+        role: "City Planning Director",
+        challenges: "I am a meticulous planner who struggles with spontaneity and adaptability; I get flustered when things do not go according to plan.",
+        goals: "Find a way to influence stakeholders to get a controversial public project approved.",
+        internalState: "Methodical, patient, struggles to persuade.",
+        keyPeople: "A vocal city council member opposing the project, Eleanor Vance."
+    },
+    {
+        name: "Liam O'Connell",
+        gender: "Male",
+        industry: "Military",
+        role: "Veteran (Career Transition)",
+        challenges: "I am a natural problem-solver who struggles with celebrating successes; I immediately move on to the next challenge.",
+        goals: "Learn how to translate his military skills for the corporate world and get a job.",
+        internalState: "Frustrated, mission-focused, feels like an outsider.",
+        keyPeople: "His wife, Sarah, who is his main support."
+    },
+    {
+        name: "Rachel Goldstein",
+        gender: "Female",
+        industry: "Large law firm",
+        role: "Lawyer (Career Transition)",
+        challenges: "I am an empathetic listener who struggles with setting boundaries; I take on too much of others emotional burdens.",
+        goals: "Explore creative career options and overcome the fear of leaving a safe profession.",
+        internalState: "Pessimistic, analytical, trapped, risk-averse.",
+        keyPeople: "Her father, Jacob, who is a renowned lawyer and has been a role model for Rachel."
+    },
+    {
+        name: "Maya Singh",
+        gender: "Female",
+        industry: "human resources",
+        role: "Stay-at-Home Parent (Career Transition)",
+        challenges: "I am a confident presenter who struggles with receiving constructive criticism; I become defensive and shut down.",
+        goals: "Regain her confidence and create a plan to re-enter the marketing field.",
+        internalState: "Anxious, self-deprecating, apologetic.",
+        keyPeople: "Her supportive husband, Ravi.",
+    },
+    {
+        name: "Tom Henderson",
+        gender: "Male",
+        industry: "Technology consulting",
+        role: "Mid-level Manager (Laid Off)",
+        challenges: "I am a creative innovator who struggles with the practicalities of commercialization; I have brilliant ideas but cannot bring them to market.",
+        goals: "Figure out where to begin his job search after being laid off.",
+        internalState: "Overwhelmed, sad, loyal, resistant.",
+        keyPeople: "His former long-time manager, Paul who is looking for opportunities for Tom to try out his ideas"
+    },
+    {
+        name: "Dr. Evelyn Reed",
+        gender: "Female",
+        industry: "Academia",
+        role: "Tenured Professor (Career Transition)",
+        challenges: "I am a decisive leader who struggles with patience; I expect immediate results and get frustrated by delays.",
+        goals: "Explore a potential move into corporate consulting and resolve her internal conflict.",
+        internalState: "Intellectual, conflicted, cynical, curious.",
+        keyPeople: "A former student, Brian, who is successful in consulting."
+    },
+    {
+        name: "Kevin Wu",
+        gender: "Male",
+        industry: "Technology Development",
+        role: "Software Engineer (Career Coaching)",
+        challenges: "I am a supportive colleague who struggles with self-care; I put others needs before my own and neglect my well-being.",
+        goals: "Understand why he is not getting promoted and what he needs to do differently.",
+        internalState: "Introverted, logical, frustrated.",
+        keyPeople: "His manager, Phil, and a recently promoted peer, Anna who Kevin helped prepare for promotion, while also applying for the same promotional opportunity."
+    },
+    {
+        name: "Sofia Petrova",
+        gender: "Female",
+        industry: "Consulting",
+        role: "Junior Consultant (Career Coaching)",
+        challenges: "I am a detail-oriented professional who struggles with the big picture; I get lost in the weeds and miss strategic opportunities.",
+        goals: "Understand and act on the feedback she is receiving to improve her performance.",
+        internalState: "Eager to please, sensitive, detail-oriented.",
+        keyPeople: "Her project manager, Diane who has recently provided this feedback."
+    },
+    {
+        name: "Jordan Lee",
+        gender: "Male",
+        industry: "Graphic design",
+        role: "Freelance Designer (Career Coaching)",
+        challenges: "I am a persuasive communicator who struggles with active listening; I am more focused on getting my point across than understanding others.",
+        goals: "Gain confidence to negotiate higher rates and land bigger clients.",
+        internalState: "Creative, passionate, insecure.",
+        keyPeople: "A potential large client, Frank from Acme Corp. who is looking for a fresh face in the field of graphic design."
+    },
+    {
+        name: "Brenda Johnson",
+        gender: "Female",
+        industry: "Rural hospital",
+        role: "Nurse Manager (Career Coaching)",
+        challenges: "I am a collaborative team member who struggles with independent decision-making; I always seek consensus and avoid taking sole responsibility.",
+        goals: "Decide whether to go back to school or apply for the Director role now.",
+        internalState: "Practical, caring, indecisive.",
+        keyPeople: "The current Director of Nursing who is retiring, Mary-Anne and who wants Brenda to apply for her position."
+    },
+    {
+        name: "Amir Khan",
+        gender: "Male",
+        industry: "AI based startup",
+        role: "Data Scientist (Career Coaching)",
+        challenges: "I am an ambitious individual who struggles with work-life balance; I am constantly striving for more and neglect my personal life.",
+        goals: "Figure out how to proactively ask his manager for more challenging projects.",
+        internalState: "Thoughtful, quiet, passive, non-confrontational.",
+        keyPeople: "His manager, Chen who is a hard task master when it comes to project quality."
+    },
         ];
 
         const unsubscribe = onSnapshot(collection(db, "personas"), (snapshot) => {
