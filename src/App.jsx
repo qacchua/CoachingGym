@@ -29,14 +29,14 @@ import Chat from './components/Chat.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import Profile from './components/Profile.jsx';
 import PublicProfile from './components/PublicProfile.jsx';
-
+import { getFunctions } from "firebase/functions";
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
-
+export const functions = getFunctions(app); // <-- ADD THIS LINE
 
 function App() {
   const [view, setView] = useState('home');

@@ -151,10 +151,19 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
 
 
   const startSimulationWithPersona = async (personaObject) => {
-    setIsGeneratingImage(true);
-    setSimulationStep('generatingImage');
+    //setIsGeneratingImage(true);
+    //setSimulationStep('generatingImage');
     setPersona(personaObject);
 
+    // --- Bypassed Image Generation ---
+    console.log("Image generation bypassed. Starting simulation directly.");
+    const initialGreeting = "Hello, coach. Thanks for meeting with me.";
+    setHistory([{role: 'model', text: initialGreeting}]);
+    setSimulationStep('chat');
+    speak(initialGreeting, personaObject.gender);
+    // --- End Bypass ---
+    
+    /* --- OLD CODE IS COMMENTED OUT ---
     try {
         const imagePrompt = `Photorealistic headshot: ${personaObject.gender.toLowerCase()} ${personaObject.role}, challenged by ${personaObject.challenges}. Centered, pleasant background.`;
         const imageUrl = await generateImageAPI(imagePrompt);
@@ -166,15 +175,16 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
         speak(initialGreeting, personaObject.gender);
     } catch (e) {
         console.error("Error generating image:", e);
-        const initialGreeting = "Hello, coach. Camera isn't working today.";
+        const initialGreeting = "Hello, coach. My Camera isn't working today.";
         setHistory([{role: 'model', text: initialGreeting}]);
         setSimulationStep('chat');
         speak(initialGreeting, personaObject.gender);
     } finally {
         setIsGeneratingImage(false);
     }
+        */
   };
-
+// --- END OF MODIFIED FUNCTION ---
 
   const handleEndAndEvaluate = useCallback(async () => {
      if (history.length < 2) {
@@ -587,10 +597,10 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
   if (error) {
     return ( <Card className="max-w-2xl mx-auto text-center"><Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm absolute top-6 right-6">&larr; Back</Button><IconWrapper><X className="w-8 h-8 text-red-500" /></IconWrapper><h1 className="text-2xl mt-4 mb-2">Not Supported</h1><p>{error}</p></Card> );
   }
-
-  if (simulationStep === 'generatingImage') {
-    return ( <Card className="max-w-2xl mx-auto text-center"><LoadingSpinner text="Generating client portrait..." /></Card> );
-  }
+// This step is now skipped by the bypass
+  //if (simulationStep === 'generatingImage') {
+    //return ( <Card className="max-w-2xl mx-auto text-center"><LoadingSpinner text="Generating client portrait..." /></Card> );
+  //}
 
   // Render logic for 'chat', 'options', 'select', 'create' steps follows...
   // (Keeping the JSX structure the same as in your original App.jsx for these steps)

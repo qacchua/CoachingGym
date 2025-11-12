@@ -1,4 +1,6 @@
 import { firebaseConfig } from '../firebaseConfig'; // Import your config
+import { httpsCallable } from "firebase/functions";
+import { functions } from '../App.jsx'; // <-- ADD THIS IMPORT
 
 // --- API Call Logic ---
 export const callGeminiAPI = async (prompt, responseSchema) => {
@@ -51,34 +53,26 @@ export const callGeminiAPI = async (prompt, responseSchema) => {
     }
 };
 
+const generateImageFromFunction = httpsCallable(functions, 'generateImage');
+
 export const generateImageAPI = async (prompt) => {
-    const payload = { instances: [{ prompt }], parameters: { "sampleCount": 1 } };
-    const apiKey = firebaseConfig.apiKey; // Use the imported config
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+  try {
+    console.log("Calling Cloud Function 'generateImage'...");
+    const result = await generateImageFromFunction({ prompt: prompt });
 
-    let response;
-    for (let i = 0; i < 3; i++) {
-        try {
-            response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (response.ok) break;
-        } catch (error) {
-            console.error("Image generation fetch error:", error);
-        }
-        await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+    // The data is wrapped in 'result.data'
+    const base64Image = result.data.base64Image;
+
+    if (!base64Image) {
+      throw new Error("No image data returned from function.");
     }
 
-    if (!response || !response.ok) {
-        throw new Error(`Image generation API error after retries.`);
-    }
+    console.log("Successfully received image from Cloud Function.");
+    return `data:image/png;base64,${base64Image}`;
 
-    const result = await response.json();
-    if (result.predictions && result.predictions[0]?.bytesBase64Encoded) {
-        return `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
-    } else {
-        throw new Error("Invalid response from image generation API.");
-    }
+  } catch (error) {
+    console.error("Error calling generateImage Cloud Function:", error);
+    // This will pass the HttpsError message (e.g., "unauthenticated") to the UI
+    throw new Error(`Function Error: ${error.message}`);
+  }
 };
