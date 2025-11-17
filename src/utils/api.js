@@ -53,26 +53,26 @@ export const callGeminiAPI = async (prompt, responseSchema) => {
     }
 };
 
-const generateImageFromFunction = httpsCallable(functions, 'generateImage');
+//const generateImageFromFunction = httpsCallable(functions, 'generateImage');
 
-export const generateImageAPI = async (prompt) => {
-  try {
-    console.log("Calling Cloud Function 'generateImage'...");
-    const result = await generateImageFromFunction({ prompt: prompt });
+//export const generateImageAPI = async (prompt) => {
+  //try {
+    //console.log("Calling Cloud Function 'generateImage'...");
+    //const result = await generateImageFromFunction({ prompt: prompt });
 
     // The data is wrapped in 'result.data'
-    const base64Image = result.data.base64Image;
+    //const base64Image = result.data.base64Image;
 
-    if (!base64Image) {
-      throw new Error("No image data returned from function.");
-    }
+    //if (!base64Image) {
+      //throw new Error("No image data returned from function.");
+    //}
 
-    console.log("Successfully received image from Cloud Function.");
-    return `data:image/png;base64,${base64Image}`;
+    //console.log("Successfully received image from Cloud Function.");
+    //return `data:image/png;base64,${base64Image}`;
 
-  } catch (error) {
-    console.error("Error calling generateImage Cloud Function:", error);
+  //} catch (error) {
+    //console.error("Error calling generateImage Cloud Function:", error);
     // This will pass the HttpsError message (e.g., "unauthenticated") to the UI
-    throw new Error(`Function Error: ${error.message}`);
-  }
-};
+    //throw new Error(`Function Error: ${error.message}`);
+  //}
+//};

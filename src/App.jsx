@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { initializeApp } from "firebase/app";
 import { 
   getFirestore, 
   doc, 
@@ -8,11 +7,10 @@ import {
   serverTimestamp, 
   onSnapshot // For real-time updates
 } from "firebase/firestore"; 
-import { getAnalytics } from "firebase/analytics";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 
-// --- THIS IS THE CLEAN IMPORT YOU SUGGESTED ---
-import { firebaseConfig } from './firebaseConfig.js'; 
+// --- 1. CLEAN IMPORTS FROM FIREBASECONFIG (FIXES CIRCULAR DEPENDENCY) ---
+import { firebaseConfig, db, auth, functions } from './firebaseConfig.js'; 
 
 // --- Import Components ---
 import HomePage from './components/HomePage';
@@ -29,14 +27,9 @@ import Chat from './components/Chat.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import Profile from './components/Profile.jsx';
 import PublicProfile from './components/PublicProfile.jsx';
-import { getFunctions } from "firebase/functions";
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-export const db = getFirestore(app);
-export const auth = getAuth(app);
-export const functions = getFunctions(app); // <-- ADD THIS LINE
+// --- 2. WE NO LONGER INITIALIZE OR EXPORT FROM THIS FILE ---
+// (All initialization code from here has been removed)
 
 function App() {
   const [view, setView] = useState('home');
@@ -45,6 +38,9 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [dilemmaDocId, setDilemmaDocId] = useState(null);
   const [profileToViewId, setProfileToViewId] = useState(null);
+  
+  // --- 3. PREMIUM STATE IS READY ---
+  const [isPremium, setIsPremium] = useState(false); 
 
   // --- Real-time Auth & Profile Listener ---
   useEffect(() => {
@@ -63,10 +59,21 @@ function App() {
         profileListenerUnsubscribe = onSnapshot(userRef, async (userSnap) => {
           
           if (userSnap.exists()) {
+            const userData = userSnap.data(); // Get the data
+            
+            // --- 4. PREMIUM CHECK LOGIC ---
+            const expires = userData.premiumExpires;
+            if (expires && expires.toDate() > new Date()) {
+              setIsPremium(true); // They are premium!
+            } else {
+              setIsPremium(false); // Not premium or it expired
+            }
+            // --- END OF PREMIUM LOGIC ---
+
             // Profile exists, merge Auth data + Firestore data
             setCurrentUser({
               ...userAuth, // uid, email, etc. from Auth
-              ...userSnap.data() // tier, joined, displayName, etc. from Firestore
+              ...userData // tier, joined, displayName, etc. from Firestore
             });
           } else {
             // Profile doesn't exist. Create it.
@@ -81,6 +88,7 @@ function App() {
             
             // Set current user with this new profile data
             setCurrentUser({ ...userAuth, ...newProfile });
+            setIsPremium(false); // New users are not premium
           }
           setAuthLoading(false);
         });
@@ -88,6 +96,7 @@ function App() {
       } else {
         // User is logged out
         setCurrentUser(null);
+        setIsPremium(false); // --- 5. RESET PREMIUM ON LOGOUT ---
         setAuthLoading(false);
         // Stop listening to the (now-logged-out) user's profile
         if (profileListenerUnsubscribe) {
@@ -137,16 +146,17 @@ function App() {
         {!currentUser ? (
           <AuthComponent />
         ) : (
-           <>
+            <>
             <Header /> 
            {(() => {
               const props = {
+                // --- 6. PASS PREMIUM TO ALL COMPONENTS ---
+                isPremium: isPremium, 
                 setView: handleSetView, // This is now the enhanced function
                 setEvaluationResult,
                 currentUser,
                 dilemmaDocId,
                 setDilemmaDocId
-                // We don't pass setProfileToViewId, handleSetView does it
               };
 
             // --- Updated Switch Statement ---
@@ -164,8 +174,8 @@ function App() {
               case 'home':
               default:              return <HomePage {...props} />;
             }
-         })()}
-          </>
+           })()}
+           </>
         )}
       </div>
     </main>

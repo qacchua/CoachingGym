@@ -57,7 +57,7 @@ const HomePage = ({ setView, currentUser }) => {
         <Card className="hover:shadow-2xl hover:-translate-y-2 text-center flex flex-col h-full">
           <div className="flex-grow">
             <IconWrapper><FileText className="w-8 h-8" /></IconWrapper>
-            <h2 className="text-2xl font-bold text-slate-800 mt-4 mb-2">Evaluate Transcript</h2>
+            <h2 className="text-2xl font-bold text-slate-800 mt-4 mb-2">Evaluate Past Sessions</h2>
             <p className="text-slate-600 mb-6">Upload a text transcript for a detailed analysis.</p>
           </div>
           <Button onClick={() => setView('transcript')}>Start Evaluation</Button>

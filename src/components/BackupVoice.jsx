@@ -4,7 +4,7 @@ import Card from './Card';
 import Button from './Button';
 import IconWrapper from './IconWrapper';
 import LoadingSpinner from './LoadingSpinner';
-//import { callGeminiAPI, generateImageAPI } from '../utils/api';
+import { callGeminiAPI, generateImageAPI } from '../utils/api';
 import { base64ToArrayBuffer, pcmToWav } from '../utils/tts';
 import { firebaseConfig } from '../firebaseConfig';
 // Import 'collection', 'addDoc', and 'onSnapshot'
@@ -58,35 +58,112 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
     };
 
     recognitionRef.current = recognition;
-  }, [history]); // Dependency on history to re-setup potentially
+  }, [history, persona]); // Dependency on history to re-setup potentially
+
+// --- 2. NEW HELPER FUNCTION TO PLAY AUDIO ---
+  const playAudio = (audioData, mimeType) => {
+    if (audioData && mimeType?.startsWith("audio/")) {
+        const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+        const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
+        const pcmData = base64ToArrayBuffer(audioData);
+        const pcm16 = new Int16Array(pcmData);
+        const wavBlob = pcmToWav(pcm16, sampleRate);
+        const audioUrl = URL.createObjectURL(wavBlob);
+        const audio = new Audio(audioUrl);
+        audio.onended = () => setIsSpeaking(false);
+        audio.play();
+    } else {
+        setIsSpeaking(false);
+        throw new Error("Invalid audio data in response.");
+    }
+  };
 
 
+  // --- 3. REWRITTEN handleAiResponse FOR MULTIMODAL ---
   const handleAiResponse = async (currentHistory) => {
     setIsThinking(true);
+    
+    // 1. Create the prompt and define the chat schema
     const prompt = `You are acting as a coaching client. Persona: "${createDescriptionFromPersona(persona)}". Respond naturally based on history. Keep concise. History:\n${currentHistory.map(m => `${m.role === 'user' ? 'Coach' : 'Client'}: ${m.text}`).join('\n')}`;
     const chatSchema = { type: "OBJECT", properties: { responseText: { type: "STRING" } }, required: ["responseText"] };
+
+    // 2. Define the payload for a multimodal request
+    const payload = {
+      // Send the full history, with the user's prompt last
+      contents: [
+        ...currentHistory.map(msg => ({
+          role: msg.role === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.text }]
+        })),
+        { role: 'user', parts: [{ text: prompt }] } // Send the full prompt again for context
+      ],
+      generationConfig: {
+        // --- THIS IS THE KEY ---
+        // Ask for both AUDIO and the JSON text
+        responseModalities: ["AUDIO", "JSON"],
+        responseMimeType: "application/json",
+        responseSchema: chatSchema,
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: persona.gender.toLowerCase() === 'male' ? 'Agamemnon' : 'Persephone'
+            }
+          }
+        }
+      },
+      // Use a model that supports multimodal output
+      model: "gemini-2.5-flash-preview" 
+    };
+
+    const apiKey = firebaseConfig.apiKey;
+    // Note: We are using the 'generateContent' endpoint for the base model
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview:generateContent?key=${apiKey}`;
+
     try {
-      const result = await callGeminiAPI(prompt, chatSchema);
-      const modelResponse = result.responseText || "I'm not sure what to say.";
+      const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) throw new Error(`API failed: ${response.status}`);
+
+      const result = await response.json();
+      
+      // 3. Process the multimodal response
+      const parts = result?.candidates?.[0]?.content?.parts;
+      if (!parts || parts.length < 2) {
+        throw new Error("Invalid multimodal response structure.");
+      }
+
+      // Part 0 will be the JSON text
+      const modelResponse = JSON.parse(parts[0].text).responseText || "I'm not sure what to say.";
+      
+      // Part 1 will be the AUDIO
+      const audioData = parts[1]?.inlineData?.data;
+      const mimeType = parts[1]?.inlineData?.mimeType;
+
+      // 4. Update state and play audio almost simultaneously
+      setIsSpeaking(true);
       setHistory(prev => [...prev, { role: 'model', text: modelResponse }]);
-      speak(modelResponse, persona.gender);
+      playAudio(audioData, mimeType); // This will play the audio
+
     } catch (e) {
       console.error(e);
       const errorMessage = "Sorry, an error occurred.";
       setHistory(prev => [...prev, { role: 'model', text: errorMessage }]);
-      speak(errorMessage, 'Female'); // Default voice on error
+      // Use old 'speak' as a fallback on error
+      speak(errorMessage, 'Female'); 
     } finally {
       setIsThinking(false);
     }
   };
 
-
-   const speak = async (text, gender = 'Female') => {
+  // --- 4. MODIFIED 'speak' function (now a fallback for errors) ---
+  const speak = async (text, gender = 'Female') => {
     if (!text) return;
     setIsSpeaking(true);
-
     const voiceName = gender.toLowerCase() === 'male' ? 'Charon' : 'Kore';
-
     const payload = {
         contents: [{ parts: [{ text: `Say this naturally: ${text}` }] }],
         generationConfig: {
@@ -111,27 +188,16 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
         const result = await response.json();
         const audioData = result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
         const mimeType = result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType;
+        
+        // Use the new helper to play the audio
+        playAudio(audioData, mimeType);
 
-        if (audioData && mimeType?.startsWith("audio/")) {
-            const sampleRateMatch = mimeType.match(/rate=(\d+)/);
-            const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
-            const pcmData = base64ToArrayBuffer(audioData);
-            const pcm16 = new Int16Array(pcmData);
-            const wavBlob = pcmToWav(pcm16, sampleRate);
-            const audioUrl = URL.createObjectURL(wavBlob);
-            const audio = new Audio(audioUrl);
-            audio.onended = () => setIsSpeaking(false);
-            audio.play();
-        } else {
-            throw new Error("Invalid audio data in TTS response.");
-        }
     } catch (e) {
         console.error("Error generating/playing speech:", e);
         setError("Problem generating voice.");
         setIsSpeaking(false);
     }
   };
-
 
   const toggleListen = () => {
     if (isListening) {
@@ -271,7 +337,7 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
         challenges: "I have extreme conflict avoidance; I fear being disliked; I prioritize harmony over accountability.",
         goals: "Find a strategy to resolve a toxic conflict between two of her direct reports.",
         internalState: "Anxious, worried, agreeable.",
-        keyPeople: "Conflicting direct reports:  Jessica and Ben."
+        keyPeople: "Conflicting reports:  Jessica and Ben."
     },
     {
         name: "Alex Petrov",
@@ -622,8 +688,6 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
             <div className="text-left text-sm mt-4 border-t pt-4">
               <p className="text-slate-700"><strong>Challenges:</strong> {persona.challenges}</p>
               <p className="text-slate-700 mt-2"><strong>Goals:</strong> {persona.goals}</p>
-              <p className="text-slate-700 mt-2"><strong>Current State</strong> {persona.internalState}</p>
-              <p className="text-slate-700 mt-2"><strong>Key People:</strong>{persona.keyPeople}</p>
             </div>
         </div>
         {/* --- END OF BLOCK TO ADD --- */}
