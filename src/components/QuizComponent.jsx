@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { BookOpenCheck, XCircle } from 'lucide-react';
+import { BookOpenCheck, XCircle, Save } from 'lucide-react';
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from '../firebaseConfig';
 import Card from './Card';
 import Button from './Button';
 import IconWrapper from './IconWrapper';
@@ -82,8 +84,8 @@ const competencies = [
 ];
 // --- END DATA ---
 
-
-const QuizComponent = ({ setView }) => {
+// --- FIXED: Added 'currentUser' to props ---
+const QuizComponent = ({ setView, currentUser }) => {
     const [quizState, setQuizState] = useState('intro'); // intro, selectLength, selectCompetency, active, results
     const [quizMode, setQuizMode] = useState('general'); // 'general' or 'competency'
     const [currentCompetency, setCurrentCompetency] = useState(null); // Stores name for competency quiz
@@ -91,11 +93,15 @@ const QuizComponent = ({ setView }) => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [userAnswers, setUserAnswers] = useState({});
     const [selectionStatus, setSelectionStatus] = useState(null);
-    const [feedbackMessage, setFeedbackMessage] = useState(null); // --- NEW STATE ---
+    const [feedbackMessage, setFeedbackMessage] = useState(null);
     const [score, setScore] = useState(0);
     const [competencyAnalysis, setCompetencyAnalysis] = useState({});
+    
+    // --- NEW STATE FOR SAVING ---
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error'
+    
     const resultsRef = useRef(null);
-
 
     const shuffleArray = (array) => {
         let currentIndex = array.length, randomIndex;
@@ -107,7 +113,6 @@ const QuizComponent = ({ setView }) => {
         return array;
     };
 
-    // --- 'startQuiz' remains unchanged ---
     const startQuiz = (numQuestions) => {
         setQuizMode('general');
         setCurrentCompetency(null);
@@ -126,7 +131,6 @@ const QuizComponent = ({ setView }) => {
         resetQuizState();
     };
 
-    // --- 'startCompetencyQuiz' remains unchanged ---
     const startCompetencyQuiz = (competencyName) => {
         setQuizMode('competency');
         setCurrentCompetency(competencyName);
@@ -148,17 +152,16 @@ const QuizComponent = ({ setView }) => {
         resetQuizState();
     };
 
-    // --- UPDATED: Clears feedback message ---
     const resetQuizState = () => {
         setCurrentQuestionIndex(0);
         setUserAnswers({});
         setScore(0);
         setSelectionStatus(null);
-        setFeedbackMessage(null); // --- ADDED ---
+        setFeedbackMessage(null); 
+        setSaveStatus(null); // Reset save status on restart
         setQuizState('active');
     };
 
-     // --- UPDATED: Adds feedback logic ---
      const handleAnswerSelect = (questionIndex, selectedAnswer) => {
         if (selectionStatus) return;
 
@@ -171,7 +174,6 @@ const QuizComponent = ({ setView }) => {
             setSelectionStatus('incorrect');
         }
 
-        // --- NEW FEEDBACK LOGIC ---
         if (quizMode === 'competency') {
             if (isCorrect) {
                 setFeedbackMessage(
@@ -180,7 +182,6 @@ const QuizComponent = ({ setView }) => {
                 </span>
                 );
             } else {
-                // Find the competency of the wrong answer
                 const wrongBehaviorData = behaviorsData.find(b => b.behavior === selectedAnswer);
                 const correctCompetencyForWrongAnswer = wrongBehaviorData 
                 ? wrongBehaviorData.competency 
@@ -192,7 +193,7 @@ const QuizComponent = ({ setView }) => {
                 </span>
                 );
             }
-        } else if (quizMode === 'general') { // Added feedback for general quiz
+        } else if (quizMode === 'general') { 
             if (isCorrect) {
                 setFeedbackMessage(
                 <span className="text-emerald-700">
@@ -208,21 +209,18 @@ const QuizComponent = ({ setView }) => {
                 );
             }
         }
-        // --- END NEW FEEDBACK LOGIC ---
     };
 
-    // --- UPDATED: Clears feedback message ---
     const handleNextQuestion = () => {
         if (currentQuestionIndex < questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
             setSelectionStatus(null);
-            setFeedbackMessage(null); // --- ADDED ---
+            setFeedbackMessage(null); 
         } else {
             handleSubmitQuiz();
         }
     };
 
-    // --- 'handleSubmitQuiz' remains unchanged ---
      const handleSubmitQuiz = () => {
         let finalScore = 0;
         const analysis = {};
@@ -253,7 +251,6 @@ const QuizComponent = ({ setView }) => {
         setQuizState('results');
     };
 
-    // --- 'handleDownloadPdf' remains unchanged ---
     const handleDownloadPdf = async () => {
         const { default: html2canvas } = await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm');
         const { default: jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm');
@@ -269,7 +266,33 @@ const QuizComponent = ({ setView }) => {
         }
     };
 
-    // --- 'intro' state remains unchanged ---
+    // --- NEW: Save to Dashboard Function ---
+    const handleSaveToDashboard = async () => {
+        if (!currentUser) return;
+        setIsSaving(true);
+        setSaveStatus(null);
+
+        try {
+            await addDoc(collection(db, 'users', currentUser.uid, 'dashboardItems'), {
+                type: 'Quiz',
+                title: quizMode === 'competency' ? `Quiz: ${currentCompetency}` : 'ICF Competency Quiz',
+                score: `${score} / ${questions.length}`,
+                percentage: Math.round((score / questions.length) * 100),
+                savedAt: serverTimestamp(),
+                quizMode: quizMode,
+                totalQuestions: questions.length
+            });
+            setSaveStatus('success');
+        } catch (error) {
+            console.error("Error saving quiz:", error);
+            setSaveStatus('error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // --- Render Logic ---
+
     if (quizState === 'intro') {
         return (
             <Card className="max-w-2xl mx-auto text-center">
@@ -291,7 +314,6 @@ const QuizComponent = ({ setView }) => {
         );
      }
 
-    // --- 'selectLength' state remains unchanged ---
      if (quizState === 'selectLength') {
         return (
             <Card className="max-w-2xl mx-auto text-center">
@@ -316,7 +338,6 @@ const QuizComponent = ({ setView }) => {
         );
      }
 
-    // --- 'selectCompetency' state remains unchanged ---
      if (quizState === 'selectCompetency') {
         return (
             <Card className="max-w-2xl mx-auto">
@@ -342,7 +363,6 @@ const QuizComponent = ({ setView }) => {
         );
      }
 
-    // --- 'results' state remains unchanged ---
     if (quizState === 'results') {
          return (
             <div className="max-w-4xl mx-auto">
@@ -353,24 +373,37 @@ const QuizComponent = ({ setView }) => {
                         <h2 className="text-2xl font-bold mb-4 border-b pb-2">Analysis by Competency</h2>
                         <div className="space-y-4">
                             {Object.entries(competencyAnalysis).map(([competency, data]) => {
-                                // Only show competencies that were in this quiz
                                 if (data.total === 0) return null; 
                                 const percentage = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
                                 return ( <div key={competency}> <div className="flex justify-between items-center mb-1"> <span>{competency}</span> <span>{data.correct} / {data.total}</span> </div> <div className="w-full bg-slate-200 rounded-full h-4"> <div className="bg-stone-600 h-4 rounded-full text-xs text-white flex items-center justify-center" style={{ width: `${percentage}%` }}> {percentage > 10 ? `${percentage}%` : ''} </div> </div> </div> );
                             })}
                         </div>
                     </div>
-                     <div className="mt-8 flex justify-center gap-4">
+                     
+                     <div className="mt-8 flex flex-wrap justify-center gap-4">
                         <Button onClick={() => setQuizState('intro')}>Back to Quiz Home</Button>
-                        <Button onClick={handleDownloadPdf} variant="secondary">Download</Button>
-                        <Button onClick={() => setView('home')} variant="secondary">Back to Home</Button>
+                        
+                        {/* Save to Dashboard Button */}
+                        <Button 
+                            onClick={handleSaveToDashboard} 
+                            disabled={isSaving || saveStatus === 'success'}
+                            className={saveStatus === 'success' ? "bg-green-600 hover:bg-green-700 text-white" : "bg-stone-700 text-white"}
+                        >
+                            {isSaving ? 'Saving...' : saveStatus === 'success' ? 'Saved!' : (
+                                <>
+                                    <Save className="w-4 h-4 mr-2" /> Save to Dashboard
+                                </>
+                            )}
+                        </Button>
+
+                        <Button onClick={handleDownloadPdf} variant="secondary">Download PDF</Button>
+                        <Button onClick={() => setView('home')} variant="secondary">Back to Hub</Button>
                     </div>
                 </Card>
             </div>
         );
     }
 
-    // --- 'active' state MODIFIED to show feedback ---
     const currentQuestion = questions[currentQuestionIndex];
     const completedQuestions = selectionStatus ? currentQuestionIndex + 1 : currentQuestionIndex;
     
@@ -406,7 +439,6 @@ const QuizComponent = ({ setView }) => {
                 })}
             </div>
 
-            {/* --- NEW FEEDBACK BLOCK --- */}
             <div className="mt-6 min-h-[3em] flex items-center justify-center">
               {selectionStatus && feedbackMessage && (
                 <div className="p-4 rounded-lg bg-slate-50 w-full text-center text-lg">
@@ -414,7 +446,6 @@ const QuizComponent = ({ setView }) => {
                 </div>
               )}
             </div>
-            {/* --- END FEEDBACK BLOCK --- */}
 
             <div className="mt-4 flex justify-between items-center">
                  <Button onClick={handleSubmitQuiz} variant="secondary" className="text-rose-600 hover:bg-rose-100">

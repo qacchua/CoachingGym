@@ -4,7 +4,7 @@ import Card from './Card';
 import Button from './Button';
 import IconWrapper from './IconWrapper';
 import LoadingSpinner from './LoadingSpinner';
-//import { callGeminiAPI, generateImageAPI } from '../utils/api';
+import { callGeminiAPI, generateImageAPI } from '../utils/api';
 import { base64ToArrayBuffer, pcmToWav } from '../utils/tts';
 import { firebaseConfig } from '../firebaseConfig';
 // Import 'collection', 'addDoc', and 'onSnapshot'
@@ -93,11 +93,11 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
             responseModalities: ["AUDIO"],
             speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } }
         },
-        model: "gemini-2.5-flash-preview-tts"
+        model: "gemini-2.5-flash"
     };
 
     const apiKey = firebaseConfig.apiKey;
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     try {
         const response = await fetch(apiUrl, {
