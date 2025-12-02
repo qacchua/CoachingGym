@@ -1,71 +1,186 @@
-import React from 'react';
-import Card from './Card';
-import Button from './Button';
+import React, { useState } from 'react';
 import { Check, Star, ArrowLeft } from 'lucide-react';
+import Button from './Button';
+import Card from './Card';
 
-const PricingPage = ({ setView }) => {
-  
-  // REPLACE THIS with your actual Stripe Payment Link
-  const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/test_..."; 
+const PricingPage = ({ setView, currentUser }) => {
+  const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'yearly'
+
+  // Replace these with your actual Stripe Payment Links or Price IDs
+  const STRIPE_LINKS = {
+    monthly: "https://buy.stripe.com/test_monthly_link",
+    yearly: "https://buy.stripe.com/test_yearly_link"
+  };
+
+  const handleUpgrade = () => {
+    const link = billingCycle === 'monthly' ? STRIPE_LINKS.monthly : STRIPE_LINKS.yearly;
+    // Redirect to Stripe
+    window.location.href = link; 
+  };
 
   return (
-    <Card className="max-w-4xl mx-auto text-center">
-      <div className="flex justify-start mb-4">
-        <Button onClick={() => setView('home')} variant="secondary">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Back
+    <div className="max-w-5xl mx-auto py-8 px-4">
+      {/* Back Button */}
+      <div className="mb-8">
+        <Button 
+          variant="secondary" 
+          onClick={() => setView('home')} 
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
         </Button>
       </div>
 
-      <h1 className="text-3xl font-bold text-slate-800 mb-4">Upgrade to Premium</h1>
-      <p className="text-slate-600 mb-8 text-lg">
-        Unlock the full potential of your coaching practice with AI-powered feedback.
-      </p>
+      <div className="text-center mb-10">
+        <h1 className="text-4xl font-bold text-slate-800 mb-4">Upgrade to Premium</h1>
+        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          Unlock the full potential of your coaching practice with AI-powered feedback, 
+          voice simulations, and unlimited insights.
+        </p>
 
-      <div className="grid md:grid-cols-2 gap-8 text-left">
+        {/* --- BILLING TOGGLE --- */}
+        <div className="flex items-center justify-center mt-8 gap-4">
+          <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-500'}`}>
+            Monthly
+          </span>
+          
+          <button 
+            onClick={() => setBillingCycle(prev => prev === 'monthly' ? 'yearly' : 'monthly')}
+            className="relative w-16 h-8 bg-stone-700 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-500"
+          >
+            <div 
+              className={`absolute left-1 top-1 w-6 h-6 bg-white rounded-full transition-transform duration-200 ease-in-out ${
+                billingCycle === 'yearly' ? 'translate-x-8' : 'translate-x-0'
+              }`} 
+            />
+          </button>
+
+          <span className={`text-sm font-medium flex items-center gap-2 ${billingCycle === 'yearly' ? 'text-slate-900' : 'text-slate-500'}`}>
+            Yearly
+            <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-bold">
+              SAVE 17%
+            </span>
+          </span>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
         
-        {/* Free Tier */}
-        <div className="p-6 border border-slate-200 rounded-2xl bg-slate-50">
-          <h2 className="text-xl font-bold text-slate-700">Free Plan</h2>
-          <p className="text-3xl font-bold mt-2 mb-6">$0<span className="text-sm font-normal text-slate-500">/mo</span></p>
-          <ul className="space-y-3 mb-8">
-            <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-2" /> 68-Question ICF Quiz</li>
-            <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-2" /> Community Chat Access</li>
-            <li className="flex items-center text-slate-400"><Check className="w-5 h-5 mr-2" /> AI Transcript Analysis</li>
-            <li className="flex items-center text-slate-400"><Check className="w-5 h-5 mr-2" /> Voice Simulations</li>
+        {/* --- FREE PLAN --- */}
+        <Card className="p-8 border-2 border-slate-100 hover:border-slate-200 transition-colors">
+          <h3 className="text-xl font-bold text-slate-800">Free Plan</h3>
+          <div className="mt-4 mb-6">
+            <span className="text-4xl font-bold text-slate-900">$0</span>
+            <span className="text-slate-500">/mo</span>
+          </div>
+          
+          <ul className="space-y-4 mb-8">
+            <li className="flex items-center gap-3 text-slate-700">
+              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <span>68-Question ICF Quiz</span>
+            </li>
+            <li className="flex items-center gap-3 text-slate-700">
+              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <span>Community Chat Access</span>
+            </li>
+            <li className="flex items-center gap-3 text-slate-400">
+              <Check className="w-5 h-5 text-slate-300 flex-shrink-0" />
+              <span className="line-through decoration-slate-400">AI Transcript Analysis</span>
+            </li>
+            <li className="flex items-center gap-3 text-slate-400">
+              <Check className="w-5 h-5 text-slate-300 flex-shrink-0" />
+              <span className="line-through decoration-slate-400">Voice Simulations</span>
+            </li>
           </ul>
-          <Button onClick={() => setView('home')} variant="secondary" className="w-full">
+
+          <Button 
+            variant="secondary" 
+            className="w-full py-6 text-lg bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-default"
+          >
             Current Plan
           </Button>
-        </div>
+        </Card>
 
-        {/* Premium Tier */}
-        <div className="p-6 border-2 border-stone-700 rounded-2xl bg-white shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 bg-stone-700 text-white text-xs px-3 py-1 rounded-bl-lg">
+        {/* --- PREMIUM PLAN --- */}
+        <Card className="p-8 border-2 border-stone-800 relative shadow-xl transform scale-105 md:scale-105 bg-white">
+          <div className="absolute top-0 right-0 bg-stone-700 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
             RECOMMENDED
           </div>
-          <h2 className="text-xl font-bold text-stone-800 flex items-center">
-            Premium <Star className="w-5 h-5 ml-2 text-yellow-500 fill-yellow-500" />
-          </h2>
-          <p className="text-3xl font-bold mt-2 mb-6">$29<span className="text-sm font-normal text-slate-500">/mo</span></p>
-          <ul className="space-y-3 mb-8">
-            <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-2" /> <strong>Everything in Free</strong></li>
-            <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-2" /> Unlimited Transcript Reviews</li>
-            <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-2" /> Interactive Voice Simulations</li>
-            <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-2" /> Ethical Dilemma Simulator</li>
-            <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-2" /> Advanced Analytics Dashboard</li>
-          </ul>
           
-          <a href={STRIPE_PAYMENT_LINK} target="_blank" rel="noopener noreferrer">
-            <Button className="w-full py-3 text-lg">
-              Upgrade Now
-            </Button>
-          </a>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-xl font-bold text-slate-800">Premium</h3>
+            <Star className="w-5 h-5 text-amber-400 fill-current" />
+          </div>
+
+          <div className="mt-4 mb-6">
+            {billingCycle === 'monthly' ? (
+              // Monthly Price View
+              <div>
+                <span className="text-5xl font-bold text-slate-900">$19.99</span>
+                <span className="text-slate-500">/mo</span>
+              </div>
+            ) : (
+              // Yearly Price View
+              <div>
+                <div className="flex items-baseline">
+                  <span className="text-5xl font-bold text-slate-900">$199.99</span>
+                  <span className="text-slate-500 ml-1">/year</span>
+                </div>
+                <p className="text-emerald-600 text-sm font-medium mt-1">
+                  Equals $16.66/mo (Save $40/year)
+                </p>
+              </div>
+            )}
+          </div>
+
+          <ul className="space-y-4 mb-8">
+            <li className="flex items-center gap-3 text-slate-900 font-medium">
+              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <span>Everything in Free</span>
+            </li>
+            <li className="flex items-center gap-3 text-slate-700">
+              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <span>Unlimited Transcript Reviews</span>
+            </li>
+            <li className="flex items-center gap-3 text-slate-700">
+              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <span>Interactive Voice Simulations</span>
+            </li>
+            <li className="flex items-center gap-3 text-slate-700">
+              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <span>Ethical Dilemma Simulator</span>
+            </li>
+            <li className="flex items-center gap-3 text-slate-700">
+              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <span>Advanced Analytics Dashboard</span>
+            </li>
+            <li className="flex items-center gap-3 text-slate-700">
+              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <span>Weekly Coaching Gym Newsletter </span>
+            </li>
+              <li className="flex items-center gap-3 text-slate-700">
+              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <span>Premium Only Chat</span>
+            </li>
+            <li className="flex items-center gap-3 text-slate-700">
+              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <span>And many more features in the pipeline </span>
+            </li>
+          </ul>
+
+          <Button 
+            onClick={handleUpgrade}
+            className="w-full py-6 text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all"
+          >
+            Upgrade Now
+          </Button>
           <p className="text-xs text-center text-slate-400 mt-3">
             Secure payment via Stripe. Cancel anytime.
           </p>
-        </div>
+        </Card>
+
       </div>
-    </Card>
+    </div>
   );
 };
 
