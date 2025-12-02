@@ -97,7 +97,8 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
     };
 
     const apiKey = firebaseConfig.apiKey;
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
 
     try {
         const response = await fetch(apiUrl, {
@@ -157,7 +158,7 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
 
     // --- Bypassed Image Generation ---
     console.log("Image generation bypassed. Starting simulation directly.");
-    const initialGreeting = "Hello, coach. Thanks for meeting with me.";
+    const initialGreeting = "Hi coach. Thanks for meeting with me.";
     setHistory([{role: 'model', text: initialGreeting}]);
     setSimulationStep('chat');
     speak(initialGreeting, personaObject.gender);
