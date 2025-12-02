@@ -6,10 +6,12 @@ import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
 import { User, Phone, MapPin, Award, Link as LinkIcon, EyeOff } from 'lucide-react';
 
-// --- 1. ADD 'currentUser' to the props ---
 const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // --- CRITICAL: Get App ID for Database Paths ---
+  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
   useEffect(() => {
     if (!viewingProfileId) {
@@ -19,22 +21,32 @@ const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
 
     const fetchProfile = async () => {
       setLoading(true);
-      const userRef = doc(db, "users", viewingProfileId);
-      const userSnap = await getDoc(userRef);
+      
+      // --- FIX: Point to the new secure 'artifacts' path ---
+      // WAS: const userRef = doc(db, "users", viewingProfileId);
+      const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', viewingProfileId);
+      
+      try {
+        const userSnap = await getDoc(userRef);
 
-      if (userSnap.exists()) {
-        setProfile(userSnap.data());
-      } else {
-        console.error("No such user!");
+        if (userSnap.exists()) {
+          setProfile(userSnap.data());
+        } else {
+          console.error("No such user found at path:", userRef.path);
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error("Error fetching public profile:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchProfile();
-  }, [viewingProfileId, setView]);
+  }, [viewingProfileId, setView, appId]);
 
-  // --- 2. Determine where the "Back" button should go ---
-  const isViewingSelf = viewingProfileId === currentUser.uid;
+  // --- Determine where the "Back" button should go ---
+  const isViewingSelf = currentUser && viewingProfileId === currentUser.uid;
   const backView = isViewingSelf ? 'profile' : 'chat';
   const backButtonText = isViewingSelf ? 'Back to My Account' : 'Back to Chat';
 
@@ -47,8 +59,7 @@ const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
     return (
       <Card className="max-w-2xl mx-auto text-center">
         <h1 className="text-2xl font-bold">Profile Not Found</h1>
-        <p className="mt-4">This user's profile could not be loaded.</p>
-        {/* --- 3. Use the dynamic 'backView' variable --- */}
+        <p className="mt-4">This user's profile could not be loaded or does not exist.</p>
         <Button onClick={() => setView(backView)} variant="secondary" className="mt-6">
           &larr; {backButtonText}
         </Button>
@@ -67,7 +78,7 @@ const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
             <img 
               src={profile.profilePhotoUrl} 
               alt={profile.displayName} 
-              className="w-24 h-24 rounded-full mb-4 object-cover" 
+              className="w-24 h-24 rounded-full mb-4 object-cover border-2 border-slate-200" 
             />
           )}
           <h1 className="text-3xl font-bold text-slate-800">{profile.displayName}</h1>
@@ -76,7 +87,6 @@ const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
           )}
         </div>
         
-        {/* --- 4. UPDATE THE BACK BUTTON HERE AS WELL --- */}
         <Button onClick={() => setView(backView)} variant="secondary" className="px-4 py-2 text-sm">
           &larr; {backButtonText}
         </Button>
@@ -84,7 +94,7 @@ const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
 
       <div className="space-y-6">
         
-        {/* Contact Info (Unchanged) */}
+        {/* Contact Info */}
         {isVisible('showContact') && profile.phone && (
           <section>
             <h2 className="text-xl font-semibold text-slate-700 mb-2 flex items-center gap-2"><Phone /> Contact Info</h2>
@@ -94,7 +104,7 @@ const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
           </section>
         )}
 
-        {/* Accreditations (Unchanged) */}
+        {/* Accreditations */}
         {isVisible('showAccreditation') && profile.accreditation && (
           <section>
             <h2 className="text-xl font-semibold text-slate-700 mb-2 flex items-center gap-2"><Award /> Accreditations</h2>
@@ -109,7 +119,7 @@ const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
           </section>
         )}
 
-        {/* Links (Unchanged) */}
+        {/* Links */}
         {isVisible('showLinks') && profile.links && (
           <section>
             <h2 className="text-xl font-semibold text-slate-700 mb-2 flex items-center gap-2"><LinkIcon /> Professional Links</h2>
@@ -122,7 +132,7 @@ const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
           </section>
         )}
 
-        {/* Check if nothing is public (Unchanged) */}
+        {/* Check if nothing is public */}
         {!isVisible('showContact') && !isVisible('showLocation') && !isVisible('showAccreditation') && !isVisible('showLinks') && (
           <div className="p-6 bg-slate-50 rounded-lg text-center text-slate-500">
             <EyeOff className="w-8 h-8 mx-auto mb-2" />
