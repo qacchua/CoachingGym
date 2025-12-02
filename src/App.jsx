@@ -1,184 +1,248 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  getFirestore, 
-  doc, 
-  getDoc, 
-  setDoc, 
-  serverTimestamp, 
-  onSnapshot // For real-time updates
-} from "firebase/firestore"; 
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+// --- FIX 1: Import onSnapshot ---
+import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import { auth, db } from './firebaseConfig';
 
-// --- 1. CLEAN IMPORTS FROM FIREBASECONFIG (FIXES CIRCULAR DEPENDENCY) ---
-import { firebaseConfig, db, auth, functions } from './firebaseConfig.js'; 
-
-// --- Import Components ---
-import HomePage from './components/HomePage';
-import TranscriptEvaluator from './components/TranscriptEvaluator';
-import Simulation from './components/Simulation';
-import VoiceSimulation from './components/VoiceSimulation';
-import QuizComponent from './components/QuizComponent';
-import EthicalDilemmaSimulator from './components/EthicalDilemmaSimulator';
-import EvaluationResult from './components/EvaluationResult';
-import AuthComponent from './components/AuthComponent';
+// --- Components ---
 import Header from './components/Header';
+import AuthComponent from './components/AuthComponent';
+import HomePage from './components/HomePage';
+import QuizComponent from './components/QuizComponent';
+import Chat from './components/Chat';
+import Dashboard from './components/Dashboard';
+import TranscriptEvaluator from './components/TranscriptEvaluator';
+import VoiceSimulation from './components/VoiceSimulation';
+import EthicalDilemmaSimulator from './components/EthicalDilemmaSimulator';
+import Simulation from './components/Simulation';
+import Profile from './components/Profile';
+import PublicProfile from './components/PublicProfile';
+import TermsOfService from './components/TermsOfService';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import PricingPage from './components/PricingPage';
+import PaymentSuccess from './components/PaymentSuccess';
 import LoadingSpinner from './components/LoadingSpinner';
-import Chat from './components/Chat.jsx';
-import Dashboard from './components/Dashboard.jsx';
-import Profile from './components/Profile.jsx';
-import PublicProfile from './components/PublicProfile.jsx';
-
-// --- 2. WE NO LONGER INITIALIZE OR EXPORT FROM THIS FILE ---
-// (All initialization code from here has been removed)
+import EvaluationResult from './components/EvaluationResult';
 
 function App() {
-  const [view, setView] = useState('home');
-  const [evaluationResult, setEvaluationResult] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [dilemmaDocId, setDilemmaDocId] = useState(null);
-  const [profileToViewId, setProfileToViewId] = useState(null);
+  const [view, setView] = useState('home'); 
+  const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
   
-  // --- 3. PREMIUM STATE IS READY ---
-  const [isPremium, setIsPremium] = useState(false); 
+  const [evaluationResult, setEvaluationResult] = useState(null);
+  const [viewParams, setViewParams] = useState(null); 
 
-  // --- Real-time Auth & Profile Listener ---
+  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+  // --- Auth & Real-time Data Logic ---
   useEffect(() => {
-    let profileListenerUnsubscribe = null;
+    let unsubscribeSnapshot = null;
 
-    // Listen for auth state changes
-    const authStateListenerUnsubscribe = onAuthStateChanged(auth, (userAuth) => {
-      if (userAuth) {
-        // User is logged in. Stop any previous profile listener.
-        if (profileListenerUnsubscribe) {
-          profileListenerUnsubscribe();
-        }
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      setLoading(true);
+      
+      // If we have an old snapshot listener active, kill it before creating a new one
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+      }
 
-        // --- Start a new real-time listener for their profile doc ---
-        const userRef = doc(db, "users", userAuth.uid);
-        profileListenerUnsubscribe = onSnapshot(userRef, async (userSnap) => {
-          
+      if (user) {
+        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+        
+        // --- FIX 2: Use onSnapshot for Real-Time Updates ---
+        // This ensures that when Profile.jsx saves, this app state updates immediately.
+        unsubscribeSnapshot = onSnapshot(userRef, async (userSnap) => {
           if (userSnap.exists()) {
-            const userData = userSnap.data(); // Get the data
+            // Existing User: Load profile and check premium status
+            const userData = userSnap.data();
+            setCurrentUser({ ...user, ...userData });
             
-            // --- 4. PREMIUM CHECK LOGIC ---
-            const expires = userData.premiumExpires;
-            if (expires && expires.toDate() > new Date()) {
-              setIsPremium(true); // They are premium!
+            // Check if trial/subscription is still valid
+            if (userData.premiumExpires) {
+              const now = new Date();
+              const expires = userData.premiumExpires.toDate(); 
+              setIsPremium(expires > now);
             } else {
-              setIsPremium(false); // Not premium or it expired
+              setIsPremium(false);
             }
-            // --- END OF PREMIUM LOGIC ---
+            setLoading(false); // Data loaded
 
-            // Profile exists, merge Auth data + Firestore data
-            setCurrentUser({
-              ...userAuth, // uid, email, etc. from Auth
-              ...userData // tier, joined, displayName, etc. from Firestore
-            });
           } else {
-            // Profile doesn't exist. Create it.
-            const newProfile = {
-              uid: userAuth.uid,
-              email: userAuth.email,
-              displayName: userAuth.displayName || userAuth.email.split('@')[0] || "New User",
-              tier: 'Free',
-              joined: serverTimestamp()
-            };
-            await setDoc(userRef, newProfile);
+            // New User: Create profile with 7-Day Trial
+            // This is safe inside onSnapshot because setDoc will trigger onSnapshot again, 
+            // hitting the 'if (userSnap.exists())' block next time.
+            const now = new Date();
+            const trialExpires = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); 
             
-            // Set current user with this new profile data
-            setCurrentUser({ ...userAuth, ...newProfile });
-            setIsPremium(false); // New users are not premium
+            const newProfile = {
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName || user.email.split('@')[0],
+              tier: 'Free',
+              joined: serverTimestamp(),
+              premiumExpires: trialExpires
+            };
+            
+            await setDoc(userRef, newProfile);
+            // We don't need to setCurrentUser here manually; 
+            // the setDoc will trigger the snapshot listener again automatically.
           }
-          setAuthLoading(false);
+        }, (error) => {
+           console.error("Real-time fetch error:", error);
+           setLoading(false);
         });
 
       } else {
-        // User is logged out
         setCurrentUser(null);
-        setIsPremium(false); // --- 5. RESET PREMIUM ON LOGOUT ---
-        setAuthLoading(false);
-        // Stop listening to the (now-logged-out) user's profile
-        if (profileListenerUnsubscribe) {
-          profileListenerUnsubscribe();
-        }
+        setIsPremium(false);
+        setLoading(false);
       }
     });
 
-    // Cleanup both listeners when the App component unmounts
+    // Cleanup function
     return () => {
-      authStateListenerUnsubscribe();
-      if (profileListenerUnsubscribe) {
-        profileListenerUnsubscribe();
-      }
+      unsubscribeAuth();
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
     };
+  }, [appId]); 
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'success') {
+      setView('success');
+      window.history.replaceState({}, document.title, "/");
+    }
   }, []);
 
- const handleSetView = (newView, payload = null) => {
+  const handleSetView = (newView, params = null) => {
     if (newView === 'logout') {
-        signOut(auth);
-        return;
+      signOut(auth); 
+      return; 
     }
-    
-    // Clear old data when navigating
-    if (view === 'result' && newView !== 'result') {
-      setEvaluationResult(null);
-    }
-    if (newView !== 'publicProfile') {
-      setProfileToViewId(null);
-    }
-    
-    // Handle payload for public profile view
-    if (newView === 'publicProfile' && payload && payload.userId) {
-      setProfileToViewId(payload.userId);
-    }
-
     setView(newView);
-  }
+    if (params) setViewParams(params);
+  };
 
-  if (authLoading) {
-    return <div className="flex h-screen items-center justify-center"><LoadingSpinner text="Loading..." /></div>;
+  const ProtectedComponent = ({ component }) => {
+    if (isPremium) {
+      return component;
+    } else {
+      return <PricingPage setView={handleSetView} currentUser={currentUser} />;
+    }
+  };
+
+  if (loading) {
+    return <div className="h-screen flex items-center justify-center"><LoadingSpinner text="Loading Coaching Gym..." /></div>;
   }
 
   return (
-    <main className="font-sans p-4 md:p-8 flex items-center justify-center min-h-screen">
-      <div className="w-full">
-        {!currentUser ? (
-          <AuthComponent />
-        ) : (
-            <>
-            <Header /> 
-           {(() => {
-              const props = {
-                // --- 6. PASS PREMIUM TO ALL COMPONENTS ---
-                isPremium: isPremium, 
-                setView: handleSetView, // This is now the enhanced function
-                setEvaluationResult,
-                currentUser,
-                dilemmaDocId,
-                setDilemmaDocId
-              };
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+      <Header 
+        currentUser={currentUser} 
+        setView={handleSetView} 
+        isPremium={isPremium} 
+      />
 
-            // --- Updated Switch Statement ---
-            switch (view) {
-              case 'transcript':    return <TranscriptEvaluator {...props} />;
-              case 'simulation':    return <Simulation {...props} />;
-              case 'voiceSimulation': return <VoiceSimulation {...props} />;
-              case 'quiz':          return <QuizComponent {...props} />;
-              case 'dilemma':       return <EthicalDilemmaSimulator {...props} />;
-              case 'result':        return <EvaluationResult result={evaluationResult} {...props} />;
-              case 'chat':          return <Chat {...props} />;
-              case 'dashboard':     return <Dashboard {...props} />;
-              case 'profile':       return <Profile {...props} />;
-              case 'publicProfile': return <PublicProfile {...props} viewingProfileId={profileToViewId} />; // <-- ADD ROUTE
-              case 'home':
-              default:              return <HomePage {...props} />;
-            }
-           })()}
-           </>
+      <main className="p-4 md:p-6">
+        {!currentUser ? (
+          <div className="w-full">
+            {view === 'terms' ? (
+              <TermsOfService setView={handleSetView} />
+            ) : view === 'privacy' ? (
+              <PrivacyPolicy setView={handleSetView} />
+            ) : (
+              <AuthComponent setView={handleSetView} />
+            )}
+          </div>
+        ) : (
+          <div className="w-full fade-in">
+            {(() => {
+              switch (view) {
+                // --- PUBLIC FEATURES (Available to All) ---
+                case 'home':
+                  return <HomePage setView={handleSetView} currentUser={currentUser} isPremium={isPremium} />;
+                
+                case 'quiz':
+                  return <QuizComponent setView={handleSetView} currentUser={currentUser} isPremium={isPremium} />;
+                
+                case 'chat':
+                  return <Chat setView={handleSetView} currentUser={currentUser} />;
+
+                case 'profile':
+                  return <Profile currentUser={currentUser} setView={handleSetView} />;
+
+                case 'publicProfile':
+                   return (
+                    <PublicProfile 
+                      setView={handleSetView} 
+                      viewingProfileId={viewParams?.userId} 
+                      currentUser={currentUser} 
+                    />
+                  );
+
+                // --- PREMIUM FEATURES (Protected) ---
+                
+                case 'dashboard':
+                  return (
+                    <ProtectedComponent 
+                      component={<Dashboard setView={handleSetView} currentUser={currentUser} isPremium={isPremium} setEvaluationResult={setEvaluationResult} />} 
+                    />
+                  );
+                
+                case 'transcript':
+                  return (
+                    <ProtectedComponent 
+                      component={<TranscriptEvaluator setView={handleSetView} setEvaluationResult={setEvaluationResult} />} 
+                    />
+                  );
+                
+                case 'voiceSimulation':
+                  return (
+                    <ProtectedComponent 
+                      component={<VoiceSimulation setView={handleSetView} currentUser={currentUser} setEvaluationResult={setEvaluationResult} />} 
+                    />
+                  );
+
+                case 'simulation':
+                   return (
+                    <ProtectedComponent 
+                      component={<Simulation setView={handleSetView} currentUser={currentUser} setEvaluationResult={setEvaluationResult} />} 
+                    />
+                   );
+                
+                case 'dilemma':
+                  return (
+                    <ProtectedComponent 
+                      component={<EthicalDilemmaSimulator setView={handleSetView} currentUser={currentUser} />} 
+                    />
+                  );
+
+                // --- UTILITY PAGES ---
+                case 'result':
+                  return <EvaluationResult result={evaluationResult} setView={handleSetView} currentUser={currentUser} />;
+
+                case 'pricing':
+                  return <PricingPage setView={handleSetView} currentUser={currentUser} />;
+
+                case 'terms':
+                  return <TermsOfService setView={handleSetView} />;
+
+                case 'privacy':
+                  return <PrivacyPolicy setView={handleSetView} />;
+                
+                case 'success':
+                  return <PaymentSuccess setView={handleSetView} currentUser={currentUser} />;
+
+                default:
+                  return <HomePage setView={handleSetView} currentUser={currentUser} isPremium={isPremium} />;
+              }
+            })()}
+          </div>
         )}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
