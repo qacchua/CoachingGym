@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { BookOpenCheck, XCircle, Save } from 'lucide-react';
+import { BookOpenCheck, XCircle, Save, Lock, Crown } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from '../firebaseConfig';
 import Card from './Card';
@@ -84,11 +84,11 @@ const competencies = [
 ];
 // --- END DATA ---
 
-// --- FIXED: Added 'currentUser' to props ---
-const QuizComponent = ({ setView, currentUser }) => {
+// --- Added isPremium to props ---
+const QuizComponent = ({ setView, currentUser, isPremium }) => {
     const [quizState, setQuizState] = useState('intro'); // intro, selectLength, selectCompetency, active, results
     const [quizMode, setQuizMode] = useState('general'); // 'general' or 'competency'
-    const [currentCompetency, setCurrentCompetency] = useState(null); // Stores name for competency quiz
+    const [currentCompetency, setCurrentCompetency] = useState(null); 
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [userAnswers, setUserAnswers] = useState({});
@@ -158,7 +158,7 @@ const QuizComponent = ({ setView, currentUser }) => {
         setScore(0);
         setSelectionStatus(null);
         setFeedbackMessage(null); 
-        setSaveStatus(null); // Reset save status on restart
+        setSaveStatus(null); 
         setQuizState('active');
     };
 
@@ -291,6 +291,19 @@ const QuizComponent = ({ setView, currentUser }) => {
         }
     };
 
+    // --- HELPERS FOR LOCKED BUTTONS ---
+    const PremiumButton = ({ onClick, children, variant = "primary" }) => {
+        if (isPremium) {
+            return <Button onClick={onClick} variant={variant}>{children}</Button>;
+        }
+        // Locked State
+        return (
+            <Button disabled className="bg-slate-200 text-slate-400 cursor-not-allowed border-slate-200 flex items-center justify-center gap-2">
+                <Lock className="w-4 h-4" /> {children} <span className="text-xs uppercase font-bold tracking-wider">(Premium)</span>
+            </Button>
+        );
+    };
+
     // --- Render Logic ---
 
     if (quizState === 'intro') {
@@ -303,13 +316,21 @@ const QuizComponent = ({ setView, currentUser }) => {
                     <Button onClick={() => setQuizState('selectLength')}>
                         General Competency Quiz
                     </Button>
-                    <Button onClick={() => setQuizState('selectCompetency')} variant="secondary">
+                    
+                    {/* COMPETENCY QUIZ - PREMIUM ONLY */}
+                    <PremiumButton onClick={() => setQuizState('selectCompetency')} variant="secondary">
                         Competency-Specific Quiz
-                    </Button>
+                    </PremiumButton>
+
                     <Button onClick={() => setView('home')} variant="secondary">
                         Back to Home
                     </Button>
                 </div>
+                {!isPremium && (
+                    <p className="text-xs text-slate-400 mt-4">
+                        Upgrade to Premium to unlock specific competency training.
+                    </p>
+                )}
             </Card>
         );
      }
@@ -321,15 +342,20 @@ const QuizComponent = ({ setView, currentUser }) => {
                 <h1 className="text-3xl font-bold mt-4">General Quiz</h1>
                 <p className="mt-4 mb-8">How many questions would you like?</p>
                 <div className="flex flex-col gap-4">
-                    <Button onClick={() => startQuiz(20)}>
+                     {/* FULL QUIZ - AVAILABLE TO ALL */}
+                    <Button onClick={() => startQuiz(behaviorsData.length)} variant={isPremium ? "secondary" : "primary"}>
+                        All {behaviorsData.length} Questions (Full Challenge)
+                    </Button>
+                    
+                     {/* 20 & 40 QUESTIONS - PREMIUM ONLY */}
+                    <PremiumButton onClick={() => startQuiz(20)}>
                         20 Questions (Quick)
-                    </Button>
-                    <Button onClick={() => startQuiz(40)} variant="secondary">
+                    </PremiumButton>
+
+                    <PremiumButton onClick={() => startQuiz(40)} variant="secondary">
                         40 Questions (Standard)
-                    </Button>
-                    <Button onClick={() => startQuiz(behaviorsData.length)} variant="secondary">
-                        All {behaviorsData.length} Questions (Full)
-                    </Button>
+                    </PremiumButton>
+                                   
                     <Button onClick={() => setQuizState('intro')} variant="secondary">
                         Back
                     </Button>
