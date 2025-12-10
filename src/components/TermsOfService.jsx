@@ -1,39 +1,55 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Card from './Card';
 import Button from './Button';
 
 const TermsOfService = ({ setView }) => {
+
+  useEffect(() => {
+    // Define the script ID
+    const scriptId = 'termly-jssdk';
+
+    // 1. Force Cleanup: Remove any existing instance of the script
+    // This ensures it runs fresh and finds the NEW div on this page.
+    const existingScript = document.getElementById(scriptId);
+    if (existingScript) {
+      existingScript.remove();
+    }
+
+    // 2. Insert the Script Fresh
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = "https://app.termly.io/embed-policy.min.js";
+    script.async = true; // Allow page to load while script fetches
+    document.body.appendChild(script);
+
+    // 3. Cleanup on Unmount (When user leaves this page)
+    return () => {
+      const scriptToRemove = document.getElementById(scriptId);
+      if (scriptToRemove) {
+        scriptToRemove.remove();
+      }
+    };
+  }, []);
+
   return (
     <Card className="max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-slate-800">Terms of Service</h1>
+        <h1 className="text-3xl font-bold text-slate-800">Terms of Service </h1>
         <Button onClick={() => setView('home')} variant="secondary">Back</Button>
       </div>
-      
-      <div className="prose prose-slate max-w-none text-slate-600 space-y-4">
-        <p className="font-semibold text-red-600 bg-red-50 p-4 rounded-lg border border-red-200">
-          Placeholder: Replace this text with your generated terms before going live.
-        </p>
-        
-        <p><strong>Last Updated:</strong> [Date]</p>
 
-        <h2 className="text-xl font-bold text-slate-800 mt-6">1. Acceptance of Terms</h2>
-        <p>
-          By accessing and using "The Coaching Gym" (the "Service"), you accept and agree to be bound by the terms and provision of this agreement.
+      {/* The Embed Div */}
+      <div 
+        name="termly-embed" 
+        data-id="38dc0c9d-1ad5-4bc7-9988-f673d013501d"
+        className="min-h-[200px]" // Ensures layout doesn't jump too much
+      >
+        {/* Placeholder text that shows while loading */}
+        <p className="text-slate-400 text-center italic py-10">
+          Loading Policy...
         </p>
-
-        <h2 className="text-xl font-bold text-slate-800 mt-6">2. Description of Service</h2>
-        <p>
-          The Service provides AI-driven coaching simulations, evaluations, and quizzes for educational purposes. The feedback provided by the AI is for training only and does not constitute professional supervision.
-        </p>
-
-        <h2 className="text-xl font-bold text-slate-800 mt-6">3. User Accounts</h2>
-        <p>
-          You are responsible for maintaining the confidentiality of your account and password. You agree to accept responsibility for all activities that occur under your account.
-        </p>
-
-        {/* Add more sections as needed from your generator */}
       </div>
+      
     </Card>
   );
 };

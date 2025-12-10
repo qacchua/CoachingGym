@@ -23,10 +23,18 @@ import PricingPage from './components/PricingPage';
 import PaymentSuccess from './components/PaymentSuccess';
 import LoadingSpinner from './components/LoadingSpinner';
 import EvaluationResult from './components/EvaluationResult';
+import Footer from './components/Footer';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [view, setView] = useState('home'); 
+  const getInitialView = () => {
+    if (window.location.pathname === '/payment-success') {
+      return 'success';
+    }
+    return 'home';
+  };
+
+  const [view, setView] = useState(getInitialView());
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
   
@@ -108,14 +116,15 @@ function App() {
     };
   }, [appId]); 
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('payment') === 'success') {
-      setView('success');
-      window.history.replaceState({}, document.title, "/");
-    }
-  }, []);
-
+// DELETE THIS BLOCK:
+  // useEffect(() => {
+  //   const params = new URLSearchParams(window.location.search);
+  //   if (params.get('payment') === 'success') {
+  //     setView('success');
+  //     window.history.replaceState({}, document.title, "/");
+  //   }
+  // }, []);
+  
   const handleSetView = (newView, params = null) => {
     if (newView === 'logout') {
       signOut(auth); 
@@ -241,6 +250,7 @@ function App() {
             })()}
           </div>
         )}
+        <Footer setView={handleSetView} />
       </main>
     </div>
   );

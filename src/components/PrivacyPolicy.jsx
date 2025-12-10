@@ -1,8 +1,36 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Card from './Card';
 import Button from './Button';
 
 const PrivacyPolicy = ({ setView }) => {
+
+  useEffect(() => {
+    // Define the script ID
+    const scriptId = 'termly-jssdk';
+
+    // 1. Force Cleanup: Remove any existing instance of the script
+    // This ensures it runs fresh and finds the NEW div on this page.
+    const existingScript = document.getElementById(scriptId);
+    if (existingScript) {
+      existingScript.remove();
+    }
+
+    // 2. Insert the Script Fresh
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = "https://app.termly.io/embed-policy.min.js";
+    script.async = true; // Allow page to load while script fetches
+    document.body.appendChild(script);
+
+    // 3. Cleanup on Unmount (When user leaves this page)
+    return () => {
+      const scriptToRemove = document.getElementById(scriptId);
+      if (scriptToRemove) {
+        scriptToRemove.remove();
+      }
+    };
+  }, []);
+
   return (
     <Card className="max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -10,30 +38,18 @@ const PrivacyPolicy = ({ setView }) => {
         <Button onClick={() => setView('home')} variant="secondary">Back</Button>
       </div>
 
-      <div className="prose prose-slate max-w-none text-slate-600 space-y-4">
-        <p className="font-semibold text-red-600 bg-red-50 p-4 rounded-lg border border-red-200">
-          Placeholder: Replace this text with your generated policy before going live.
+      {/* The Embed Div */}
+      <div 
+        name="termly-embed" 
+        data-id="e89ac2ba-db4d-4edc-81c4-3224f91fab11"
+        className="min-h-[200px]" // Ensures layout doesn't jump too much
+      >
+        {/* Placeholder text that shows while loading */}
+        <p className="text-slate-400 text-center italic py-10">
+          Loading Policy...
         </p>
-
-        <p><strong>Last Updated:</strong> [Date]</p>
-
-        <h2 className="text-xl font-bold text-slate-800 mt-6">1. Information We Collect</h2>
-        <p>
-          We collect information you provide directly to us, such as your email address when you create an account, and the transcripts you upload for evaluation.
-        </p>
-
-        <h2 className="text-xl font-bold text-slate-800 mt-6">2. How We Use Your Information</h2>
-        <p>
-          We use the information we collect to provide, maintain, and improve our services, such as generating AI feedback on your coaching sessions.
-        </p>
-
-        <h2 className="text-xl font-bold text-slate-800 mt-6">3. Data Security</h2>
-        <p>
-          We take reasonable measures to help protect information about you from loss, theft, misuse and unauthorized access.
-        </p>
-        
-        {/* Add more sections as needed from your generator */}
       </div>
+      
     </Card>
   );
 };
