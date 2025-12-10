@@ -80,12 +80,12 @@ const AuthComponent = ({ setView }) => {
 
       {/* --- Terms and Privacy Footer --- */}
       <div className="mt-8 pt-6 border-t border-slate-100 text-center text-xs text-slate-500">
-        <p>By continuing, you agree to our</p>
-        <div className="flex justify-center gap-2 mt-1">
-           <button className="hover:underline text-stone-600" onClick={() => setView('terms')}>Terms of Service</button> 
-           <span>&bull;</span>
-           <button className="hover:underline text-stone-600" onClick={() => setView('privacy')}>Privacy Policy</button>
-        </div>
+       <p className="text-xs text-slate-500 mt-4 text-center">
+          By continuing, you agree to our{' '}
+          <button onClick={() => setView('terms')} className="underline hover:text-slate-700">Terms</button>
+          {' '}and{' '}
+          <button onClick={() => setView('privacy')} className="underline hover:text-slate-700">Privacy Policy</button>.
+        </p>
       </div>
     </Card>
   );

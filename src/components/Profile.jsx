@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 import { db } from '../firebaseConfig.js';
+import { stripeConfig } from '../firebaseConfig.js'; // stripeConfig comes from config
 import { doc, setDoc } from "firebase/firestore"; 
 import Card from './Card';
 import Button from './Button';
@@ -118,6 +119,30 @@ const Profile = ({ setView, currentUser }) => {
     });
   };
 
+// --- Upgrade Handler ---
+  const handleUpgrade = (interval) => {
+    // Select the link from the config file based on the button clicked
+    const link = interval === 'monthly' ? stripeConfig.monthlyLink : stripeConfig.yearlyLink;
+
+    if (link) {
+      window.location.href = link;
+    } else {
+      console.error("Stripe link missing. Check .env variables.");
+      alert("Payment system is currently under maintenance.");
+    }
+  };
+
+  // --- Manage Subscription Handler (MOVED OUTSIDE) ---
+  // This must be a sibling to handleUpgrade, not a child of it.
+  const handleManageSubscription = () => {
+    if (stripeConfig.portalLink) {
+      window.location.href = stripeConfig.portalLink;
+    } else {
+      alert("Customer portal is not configured.");
+    }
+  };
+
+  
   // --- Save function to update Firestore ---
   const handleSaveProfile = async () => {
     if (!currentUser?.uid) {
@@ -325,29 +350,66 @@ const Profile = ({ setView, currentUser }) => {
           </div>
         </section>
 
-       {/* --- Section 5: Membership & Security (SMART DISPLAY) --- */}
+      {/* --- Section 5: Membership & Security (UPDATED) --- */}
         <section>
-          <h2 className="text-xl font-semibold text-slate-700 mb-3 flex items-center gap-2"><Shield /> Membership & Security</h2>
+          <h2 className="text-xl font-semibold text-slate-700 mb-3 flex items-center gap-2">
+            <Shield /> Membership & Security
+          </h2>
           <div className="p-6 bg-slate-50 rounded-lg space-y-4">
-            <div>
-              {/* Uses Auth Metadata if DB field is missing */}
-              <p><strong>Coaching Gym Member Since:</strong> {formatDate(joinDate)}</p>
+            
+            {/* Top Row: Info & Actions */}
+            <div className="flex flex-col md:flex-row justify-between items-start gap-6">
               
-              {/* Defaults to Free if missing */}
-              <p><strong>Membership Tier:</strong> <span className="font-bold text-stone-700">{currentTier}</span></p>
-              
-              <p><strong>Membership Renewal Date:</strong> {formatDate(currentUser?.premiumExpires) || 'N/A'}</p>
-              <p className="text-sm text-slate-500">(Renewal date will be auto-populated by your Stripe subscription.)</p>
+              {/* Left Column: Details */}
+              <div className="space-y-2">
+                <p><strong>Coaching Gym Member Since:</strong> {formatDate(joinDate)}</p>
+                <p><strong>Membership Tier:</strong> <span className="font-bold text-stone-700">{currentTier}</span></p>
+                
+                {/* Show Renewal Date ONLY if they are Premium */}
+                {currentTier !== 'Free' && (
+                  <p><strong>Renewal Date:</strong> {formatDate(currentUser?.premiumExpires)}</p>
+                )}
+              </div>
+
+              {/* Right Column: Actions */}
+              <div className="w-full md:w-auto">
+                
+                {/* SCENARIO A: User is FREE (Show Upgrade Options) */}
+                {currentTier === 'Free' && (
+                  <div className="flex flex-col gap-2">
+                    <Button onClick={() => handleUpgrade('monthly')}>
+                      Upgrade Monthly ($10)
+                    </Button>
+                    <Button onClick={() => handleUpgrade('yearly')} variant="secondary">
+                      Upgrade Yearly ($100)
+                    </Button>
+                  </div>
+                )}
+
+                {/* SCENARIO B: User is PREMIUM (Show Manage/Cancel) */}
+                {currentTier !== 'Free' && (
+                  <div className="flex flex-col items-start md:items-end gap-2">
+                    <div className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-semibold mb-2">
+                      ✓ Active Member
+                    </div>
+                    <Button onClick={handleManageSubscription} variant="secondary" className="text-sm">
+                      Manage Subscription / Cancel
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="pt-4 border-t">
-              <p className="mb-4">Need to change your password?</p>
-              <Button onClick={handlePasswordReset} variant="secondary">
+
+            {/* Bottom Row: Password Reset */}
+            <div className="pt-4 border-t mt-4">
+              <p className="mb-2 text-sm text-slate-600">Security Settings</p>
+              <Button onClick={handlePasswordReset} variant="secondary" className="w-full md:w-auto">
                 Send Password Reset Email
               </Button>
             </div>
           </div>
         </section>
-
+        
         {/* --- Save Button & Feedback --- */}
         <div className="text-right">
           <Button onClick={handleSaveProfile} disabled={isSaving}>

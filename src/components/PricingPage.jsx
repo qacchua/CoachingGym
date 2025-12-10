@@ -2,22 +2,25 @@ import React, { useState } from 'react';
 import { Check, Star, ArrowLeft } from 'lucide-react';
 import Button from './Button';
 import Card from './Card';
+import { stripeConfig } from '../firebaseConfig';
 
 const PricingPage = ({ setView, currentUser }) => {
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'yearly'
 
-  // Replace these with your actual Stripe Payment Links or Price IDs
-  const STRIPE_LINKS = {
-    monthly: "https://buy.stripe.com/test_monthly_link",
-    yearly: "https://buy.stripe.com/test_yearly_link"
+ const handleUpgrade = () => {
+    // Use the links from your central config file
+    const link = billingCycle === 'monthly' 
+      ? stripeConfig.monthlyLink 
+      : stripeConfig.yearlyLink;
+      
+    if (link) {
+      window.location.href = link; 
+    } else {
+      console.error("Stripe link not found");
+      alert("Payment system is currently offline.");
+    }
   };
-
-  const handleUpgrade = () => {
-    const link = billingCycle === 'monthly' ? STRIPE_LINKS.monthly : STRIPE_LINKS.yearly;
-    // Redirect to Stripe
-    window.location.href = link; 
-  };
-
+  
   return (
     <div className="max-w-5xl mx-auto py-8 px-4">
       {/* Back Button */}
@@ -156,14 +159,6 @@ const PricingPage = ({ setView, currentUser }) => {
             </li>
             <li className="flex items-center gap-3 text-slate-700">
               <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-              <span>Weekly Coaching Gym Newsletter </span>
-            </li>
-              <li className="flex items-center gap-3 text-slate-700">
-              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-              <span>Premium Only Chat</span>
-            </li>
-            <li className="flex items-center gap-3 text-slate-700">
-              <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
               <span>And many more features in the pipeline </span>
             </li>
           </ul>
@@ -176,6 +171,11 @@ const PricingPage = ({ setView, currentUser }) => {
           </Button>
           <p className="text-xs text-center text-slate-400 mt-3">
             Secure payment via Stripe. Cancel anytime.
+          </p>
+          <p className="text-xs text-slate-400 mt-1">
+              Read our <button onClick={() => setView('terms')} className="underline">Terms</button> 
+              {' '}&{' '} 
+              <button onClick={() => setView('privacy')} className="underline">Refund Policy</button>.
           </p>
         </Card>
 
