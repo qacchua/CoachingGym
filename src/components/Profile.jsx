@@ -378,10 +378,10 @@ const Profile = ({ setView, currentUser }) => {
                 {currentTier === 'Free' && (
                   <div className="flex flex-col gap-2">
                     <Button onClick={() => handleUpgrade('monthly')}>
-                      Upgrade Monthly ($10)
+                      Upgrade Monthly ($19.99)
                     </Button>
                     <Button onClick={() => handleUpgrade('yearly')} variant="secondary">
-                      Upgrade Yearly ($100)
+                      Upgrade Yearly ($199)
                     </Button>
                   </div>
                 )}
