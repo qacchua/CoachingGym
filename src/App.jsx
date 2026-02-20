@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from "firebase/auth";
-// --- FIX 1: Import onSnapshot ---
 import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { auth, db } from './firebaseConfig';
 
 // --- Components ---
 import Header from './components/Header';
-import AuthComponent from './components/AuthComponent';
+import AuthComponent from './components/AuthComponent'; // Kept in case you need it elsewhere, though LandingPage uses it internally
+import LandingPage from './components/LandingPage'; // <--- NEW IMPORT
 import HomePage from './components/HomePage';
 import QuizComponent from './components/QuizComponent';
 import Chat from './components/Chat';
@@ -27,6 +27,7 @@ import Footer from './components/Footer';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
+  
   const getInitialView = () => {
     if (window.location.pathname === '/payment-success') {
       return 'success';
@@ -59,8 +60,7 @@ function App() {
       if (user) {
         const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
         
-        // --- FIX 2: Use onSnapshot for Real-Time Updates ---
-        // This ensures that when Profile.jsx saves, this app state updates immediately.
+        // Real-Time Updates
         unsubscribeSnapshot = onSnapshot(userRef, async (userSnap) => {
           if (userSnap.exists()) {
             // Existing User: Load profile and check premium status
@@ -79,8 +79,6 @@ function App() {
 
           } else {
             // New User: Create profile with 7-Day Trial
-            // This is safe inside onSnapshot because setDoc will trigger onSnapshot again, 
-            // hitting the 'if (userSnap.exists())' block next time.
             const now = new Date();
             const trialExpires = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); 
             
@@ -94,8 +92,6 @@ function App() {
             };
             
             await setDoc(userRef, newProfile);
-            // We don't need to setCurrentUser here manually; 
-            // the setDoc will trigger the snapshot listener again automatically.
           }
         }, (error) => {
            console.error("Real-time fetch error:", error);
@@ -116,15 +112,6 @@ function App() {
     };
   }, [appId]); 
 
-// DELETE THIS BLOCK:
-  // useEffect(() => {
-  //   const params = new URLSearchParams(window.location.search);
-  //   if (params.get('payment') === 'success') {
-  //     setView('success');
-  //     window.history.replaceState({}, document.title, "/");
-  //   }
-  // }, []);
-  
   const handleSetView = (newView, params = null) => {
     if (newView === 'logout') {
       signOut(auth); 
@@ -148,13 +135,23 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      <Header 
-        currentUser={currentUser} 
-        setView={handleSetView} 
-        isPremium={isPremium} 
-      />
+      
+      {/* LOGIC CHANGE 1: Only show the global Header if the user is logged in. 
+        The Landing Page has its own header/logo section.
+      */}
+      {currentUser && (
+        <Header 
+          currentUser={currentUser} 
+          setView={handleSetView} 
+          isPremium={isPremium} 
+        />
+      )}
 
-      <main className="p-4 md:p-6">
+      {/* LOGIC CHANGE 2: Conditional padding. 
+        Landing pages usually need full width (no padding), 
+        while the dashboard views need the p-4/p-6 padding.
+      */}
+      <main className={currentUser ? "p-4 md:p-6" : ""}>
         {!currentUser ? (
           <div className="w-full">
             {view === 'terms' ? (
@@ -162,14 +159,15 @@ function App() {
             ) : view === 'privacy' ? (
               <PrivacyPolicy setView={handleSetView} />
             ) : (
-              <AuthComponent setView={handleSetView} />
+              // LOGIC CHANGE 3: Replaced AuthComponent with LandingPage
+              <LandingPage setView={handleSetView} />
             )}
           </div>
         ) : (
           <div className="w-full fade-in">
             {(() => {
               switch (view) {
-                // --- PUBLIC FEATURES (Available to All) ---
+                // --- PUBLIC FEATURES (Available to All Logged In Users) ---
                 case 'home':
                   return <HomePage setView={handleSetView} currentUser={currentUser} isPremium={isPremium} />;
                 
@@ -192,7 +190,6 @@ function App() {
                   );
 
                 // --- PREMIUM FEATURES (Protected) ---
-                
                 case 'dashboard':
                   return (
                     <ProtectedComponent 
@@ -250,7 +247,11 @@ function App() {
             })()}
           </div>
         )}
-        <Footer setView={handleSetView} />
+        
+        {/* LOGIC CHANGE 4: Only show the global Footer if the user is logged in. 
+          The LandingPage usually has its own footer designed into the page.
+        */}
+        {currentUser && <Footer setView={handleSetView} />}
       </main>
     </div>
   );
