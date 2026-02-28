@@ -1,20 +1,17 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Bot, User, Mic, X, Dices, List, UserPlus } from 'lucide-react';
+import { Bot, User, Mic, MicOff, X, Dices, List, UserPlus, Video, PhoneOff, Settings, Info, LogOut, Home } from 'lucide-react';
 import Card from './Card';
 import Button from './Button';
 import IconWrapper from './IconWrapper';
 import LoadingSpinner from './LoadingSpinner';
 import { callGeminiAPI, generateImageAPI } from '../utils/api';
 import { base64ToArrayBuffer, pcmToWav } from '../utils/tts';
-import { firebaseConfig } from '../firebaseConfig';
-// Import 'collection', 'addDoc', and 'onSnapshot'
+import { firebaseConfig, db } from '../firebaseConfig';
 import { collection, addDoc, onSnapshot } from "firebase/firestore";
-// Correct the db import path to App.jsx
-import { db } from '../firebaseConfig.js';
 
 const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
   const [simulationStep, setSimulationStep] = useState('options');
-  const [personas, setPersonas] = useState([]); // Will be populated from Firestore
+  const [personas, setPersonas] = useState([]); 
   const [persona, setPersona] = useState(null);
   const [personaImage, setPersonaImage] = useState(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -23,735 +20,289 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showHint, setShowHint] = useState(true);
   const [error, setError] = useState(null);
   const [customPersona, setCustomPersona] = useState({ name: '', industry: '', role: '', challenges: '', goals: '', gender: 'Female', internalState: '', keyPeople: '' });
 
+  const canvasRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const animationFrameRef = useRef(null);
   const recognitionRef = useRef(null);
   const chatWindowRef = useRef(null);
 
-   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setError("Speech recognition is not supported in your browser. Please try Chrome or Edge.");
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      const newHistory = [...history, { role: 'user', text: transcript }];
-      setHistory(newHistory);
-      handleAiResponse(newHistory);
+  // --- AUDIO VISUALIZER ---
+  const startVisualizer = (audioElement) => {
+    if (!canvasRef.current) return;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+    const analyser = audioCtx.createAnalyser();
+    const source = audioCtx.createMediaElementSource(audioElement);
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
+    analyser.fftSize = 64;
+    audioContextRef.current = audioCtx;
+    analyserRef.current = analyser;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const draw = () => {
+      animationFrameRef.current = requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(dataArray);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const barWidth = (canvas.width / bufferLength) * 2;
+      let x = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = (dataArray[i] / 255) * canvas.height;
+        ctx.fillStyle = `rgb(159, 18, 57)`; 
+        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+        x += barWidth + 4;
+      }
     };
+    draw();
+  };
 
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
-      setError(`Speech recognition error: ${event.error}. Ensure microphone access.`);
-      setIsListening(false);
+  const createDescriptionFromPersona = (p) => {
+    return `Role-play as: Name: ${p.name}, Role: ${p.role} (${p.industry}). Challenges: "${p.challenges}". Goals: "${p.goals}". Internal State: "${p.internalState || 'N/A'}". Key People: "${p.keyPeople || 'N/A'}".`;
+  };
+
+  const speak = async (text, gender = 'Female') => {
+    if (!text) return;
+    setIsSpeaking(true);
+    setShowHint(false);
+    const voiceName = gender.toLowerCase() === 'male' ? 'Charon' : 'Kore';
+    const payload = {
+        contents: [{ parts: [{ text: `Say this naturally: ${text}` }] }],
+        generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } },
+        model: "gemini-2.5-flash"
     };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-  }, [history]); // Dependency on history to re-setup potentially
-
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${firebaseConfig.apiKey}`, { 
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) 
+        });
+        const result = await response.json();
+        const audioData = result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (audioData) {
+            const pcmData = base64ToArrayBuffer(audioData);
+            const wavBlob = pcmToWav(new Int16Array(pcmData), 24000);
+            const audio = new Audio(URL.createObjectURL(wavBlob));
+            audio.onplay = () => startVisualizer(audio);
+            audio.onended = () => {
+                setIsSpeaking(false);
+                setShowHint(true);
+                if (audioContextRef.current) audioContextRef.current.close();
+                cancelAnimationFrame(animationFrameRef.current);
+            };
+            audio.play().catch(e => console.error("Playback blocked.", e));
+        }
+    } catch (e) { setIsSpeaking(false); setShowHint(true); }
+  };
 
   const handleAiResponse = async (currentHistory) => {
     setIsThinking(true);
-    const prompt = `You are acting as a coaching client. Persona: "${createDescriptionFromPersona(persona)}". Respond naturally based on history. Keep concise. History:\n${currentHistory.map(m => `${m.role === 'user' ? 'Coach' : 'Client'}: ${m.text}`).join('\n')}`;
+    setShowHint(false);
+    const prompt = `Act as coaching client ${persona.name}. Response: 1-3 sentences. \nPERSONA: ${createDescriptionFromPersona(persona)}\nHISTORY:\n${currentHistory.map(m => `${m.role === 'user' ? 'Coach' : 'Client'}: ${m.text}`).join('\n')}\nClient Response:`;
     const chatSchema = { type: "OBJECT", properties: { responseText: { type: "STRING" } }, required: ["responseText"] };
     try {
       const result = await callGeminiAPI(prompt, chatSchema);
-      const modelResponse = result.responseText || "I'm not sure what to say.";
+      const modelResponse = result.responseText || "I'm processing that.";
       setHistory(prev => [...prev, { role: 'model', text: modelResponse }]);
       speak(modelResponse, persona.gender);
-    } catch (e) {
-      console.error(e);
-      const errorMessage = "Sorry, an error occurred.";
-      setHistory(prev => [...prev, { role: 'model', text: errorMessage }]);
-      speak(errorMessage, 'Female'); // Default voice on error
-    } finally {
-      setIsThinking(false);
-    }
+    } catch (e) { setShowHint(true); } finally { setIsThinking(false); }
   };
-
-
-   const speak = async (text, gender = 'Female') => {
-    if (!text) return;
-    setIsSpeaking(true);
-
-    const voiceName = gender.toLowerCase() === 'male' ? 'Charon' : 'Kore';
-
-    const payload = {
-        contents: [{ parts: [{ text: `Say this naturally: ${text}` }] }],
-        generationConfig: {
-            responseModalities: ["AUDIO"],
-            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } }
-        },
-        model: "gemini-2.5-flash"
-    };
-
-    const apiKey = firebaseConfig.apiKey;
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-
-
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) throw new Error(`TTS API failed: ${response.status}`);
-
-        const result = await response.json();
-        const audioData = result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        const mimeType = result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType;
-
-        if (audioData && mimeType?.startsWith("audio/")) {
-            const sampleRateMatch = mimeType.match(/rate=(\d+)/);
-            const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
-            const pcmData = base64ToArrayBuffer(audioData);
-            const pcm16 = new Int16Array(pcmData);
-            const wavBlob = pcmToWav(pcm16, sampleRate);
-            const audioUrl = URL.createObjectURL(wavBlob);
-            const audio = new Audio(audioUrl);
-            audio.onended = () => setIsSpeaking(false);
-            audio.play();
-        } else {
-            throw new Error("Invalid audio data in TTS response.");
-        }
-    } catch (e) {
-        console.error("Error generating/playing speech:", e);
-        setError("Problem generating voice.");
-        setIsSpeaking(false);
-    }
-  };
-
 
   const toggleListen = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-    } else {
+    if (isMuted) return;
+    if (isListening) { recognitionRef.current?.stop(); } 
+    else {
       if (isSpeaking || isThinking) return;
-      try {
-        recognitionRef.current?.start();
-        setIsListening(true);
-        setError(null);
-      } catch (e) {
-        console.error("Could not start recognition:", e);
-        setError("Could not start recognition. Check permissions.");
-      }
+      try { recognitionRef.current?.start(); setIsListening(true); } catch (e) { console.error(e); }
     }
   };
-
 
   const startSimulationWithPersona = async (personaObject) => {
-    //setIsGeneratingImage(true);
-    //setSimulationStep('generatingImage');
     setPersona(personaObject);
-
-    // --- Bypassed Image Generation ---
-    console.log("Image generation bypassed. Starting simulation directly.");
-    const initialGreeting = "Hi coach. Thanks for meeting with me.";
-    setHistory([{role: 'model', text: initialGreeting}]);
-    setSimulationStep('chat');
-    speak(initialGreeting, personaObject.gender);
-    // --- End Bypass ---
-    
-    /* --- OLD CODE IS COMMENTED OUT ---
+    setIsGeneratingImage(true);
+    setSimulationStep('generatingImage');
+    const imagePrompt = `High-quality 4k video conference shot of a ${personaObject.gender.toLowerCase()} ${personaObject.role}, chest up, modern home office background, soft bokeh.`;
     try {
-        const imagePrompt = `Photorealistic headshot: ${personaObject.gender.toLowerCase()} ${personaObject.role}, challenged by ${personaObject.challenges}. Centered, pleasant background.`;
-        const imageUrl = await generateImageAPI(imagePrompt);
-        setPersonaImage(imageUrl);
-
-        const initialGreeting = "Hello, coach. Thanks for meeting with me.";
-        setHistory([{role: 'model', text: initialGreeting}]);
-        setSimulationStep('chat');
-        speak(initialGreeting, personaObject.gender);
-    } catch (e) {
-        console.error("Error generating image:", e);
-        const initialGreeting = "Hello, coach. My Camera isn't working today.";
-        setHistory([{role: 'model', text: initialGreeting}]);
-        setSimulationStep('chat');
-        speak(initialGreeting, personaObject.gender);
-    } finally {
+        const base64ImageUrl = await generateImageAPI(imagePrompt);
+        setPersonaImage(base64ImageUrl || null);
+    } catch (error) { setPersonaImage(null); } finally {
         setIsGeneratingImage(false);
+        const initialGreeting = "Hi coach. Thanks for meeting with me.";
+        setHistory([{role: 'model', text: initialGreeting}]);
+        setSimulationStep('chat');
+        speak(initialGreeting, personaObject.gender);
     }
-        */
-  };
-// --- END OF MODIFIED FUNCTION ---
-
-  const handleEndAndEvaluate = useCallback(async () => {
-     if (history.length < 2) {
-         alert("Have a longer conversation first.");
-         return;
-     };
-     setIsEvaluating(true);
-     const transcript = history.map(m => `${m.role === 'user' ? 'Coach' : 'Client'}: ${m.text}`).join('\n');
-     try {
-        const fullReport = {};
-        // Competency Analysis
-        const competencyPrompt = `Analyze transcript based on ICF competencies 3-8. Rate (Exemplary, Proficient, Sufficient, Needs Development) & justify. Return JSON { "evaluation": [...] }. Transcript: ${transcript}`;
-        const competencySchema = {type: "OBJECT", properties: { evaluation: { type: "ARRAY", items: { type: "OBJECT", properties: { competency: { type: "STRING" }, rating: { type: "STRING" }, justification: { type: "STRING" } }, required: ["competency", "rating", "justification"] } } } };
-        const competencyResult = await callGeminiAPI(competencyPrompt, competencySchema);
-        fullReport.evaluation = competencyResult.evaluation;
-        fullReport.foundationalCompetencies = [
-            { competency: "1: Demonstrates Ethical Practice", assessmentNote: "Observed/Not Observed basis by assessor." },
-            { competency: "2: Embodies a Coaching Mindset", assessmentNote: "Assessed via ICF Exam & mentor coaching." }
-        ];
-        // Talk Time
-        const talkTimePrompt = `Analyze talk time: Coach vs Client %. Return JSON { "coachPercentage": #, "clientPercentage": # }. Transcript: ${transcript}`;
-        const talkTimeSchema = { type: "OBJECT", properties: { coachPercentage: { type: "NUMBER" }, clientPercentage: { type: "NUMBER" } }, required: ["coachPercentage", "clientPercentage"] };
-        fullReport.speakerAnalysis = await callGeminiAPI(talkTimePrompt, talkTimeSchema);
-        // Key Insights
-        const insightsPrompt = `Identify up to 5 client insights. Return JSON { "keyInsights": [...] }. Transcript: ${transcript}`;
-        const insightsSchema = { type: "OBJECT", properties: { keyInsights: { type: "ARRAY", items: { type: "STRING" } } } };
-        fullReport.keyInsights = (await callGeminiAPI(insightsPrompt, insightsSchema)).keyInsights;
-        // Alternative Questions
-        const questionsPrompt = `Suggest up to 5 powerful alternative questions. Return JSON { "alternativeQuestions": [...] }. Transcript: ${transcript}`;
-        const questionsSchema = { type: "OBJECT", properties: { alternativeQuestions: { type: "ARRAY", items: { type: "STRING" } } } };
-        fullReport.alternativeQuestions = (await callGeminiAPI(questionsPrompt, questionsSchema)).alternativeQuestions;
-        // Question Analysis
-        const questionAnalysisPrompt = `Analyze Coach questions: 'Open-Ended', 'Leading', 'Clarifying', 'Observation'. Return JSON percentage breakdown { "openEnded": #, ... }. Transcript: ${transcript}`;
-        const questionAnalysisSchema = { type: "OBJECT", properties: { openEnded: { type: "NUMBER" }, leading: { type: "NUMBER" }, clarifying: { type: "NUMBER" }, observation: { type: "NUMBER" } }, required: ["openEnded", "leading", "clarifying", "observation"] };
-        fullReport.questionAnalysis = await callGeminiAPI(questionAnalysisPrompt, questionAnalysisSchema);
-
-        setEvaluationResult(fullReport);
-        setView('result');
-     } catch(e) {
-        console.error(e);
-        alert(e.message || "Error evaluating conversation.");
-     } finally {
-        setIsEvaluating(false);
-     }
-  }, [history, setView, setEvaluationResult]);
-
-  const createDescriptionFromPersona = (p) => {
-    return `Role-play as: Name: ${p.name || 'Alex'}, Role: ${p.role} (${p.industry || 'any'}). Challenges: "${p.challenges}". Goals: "${p.goals}". Internal State: "${p.internalState}". Key People: "${p.keyPeople}". Embody state, use names, be realistic.`;
-  };
-
-  // --- defaultPersonas array is REMOVED ---
-
-  // --- This useEffect now fetches from Firestore ---
-  useEffect(() => {
-     // Keep a few defaults as a fallback in case Firestore is empty/fails
-     const fallbackPersonas = [
-        { name: 'Alex Chen', gender: 'Female', industry: 'Tech Startup', role: 'New Manager', challenges: "Drowning in work, don't trust team. Ben missed deadline, fixed it myself. Feel like I must do everything.", goals: "Delegate effectively without losing control. Trust team, especially Sarah, but fear failure.", internalState: "Anxious, frustrated, micromanaging but can't stop. Worried about burnout.", keyPeople: "Ben (Direct Report) - Missed deadline. Sarah (DR) - Has potential." },
-        { name: 'Maria Rodriguez', gender: 'Female', industry: 'Corp Finance', role: 'Senior Exec', challenges: "Felt nothing in Q3 planning with boss Cynthia. Hit targets, but going through motions. Promotion feels empty.", goals: "Understand disconnect. Is it job or me? Want passion again, maybe drastic change.", internalState: "Numb, apathetic, trapped. Guilty for not appreciating success. Confused.", keyPeople: "Cynthia (Boss, SVP) - Supportive but high-pressure." },
-        {
-        name: "Priya Sharma",
-        gender: "Female",
-        industry: "Technology / Software",
-        role: "Director of Product Management",
-        challenges: "My identity is tied to being the expert; I fear failure and becoming irrelevant if I fully delegate.",
-        goals: "Get practical time management and delegation strategies.",
-        internalState: "Overwhelmed, anxious, impatient.",
-        keyPeople: "Her boss, Mark (VP of Product)."
-    },
-    {
-        name: "David Chen",
-        gender: "Male",
-        industry: "Technology / Engineering",
-        role: "Senior Engineering Manager",
-        challenges: "I believe soft skills are useless; I am uncomfortable with emotions; my perfectionism prevents me from trusting my team.",
-        goals: "Learn to communicate better to satisfy his director after a bad 360 review.",
-        internalState: "Skeptical, reserved, defensive.",
-        keyPeople: "His boss, Susan (Director)."
-    },
-    {
-        name: "Maria Flores",
-        gender: "Female",
-        industry: "Fortune 100 Conglomerate",
-        role: "Head of People & Culture",
-        challenges: "I have extreme conflict avoidance; I fear being disliked; I prioritize harmony over accountability.",
-        goals: "Find a strategy to resolve a toxic conflict between two of her direct reports.",
-        internalState: "Anxious, worried, agreeable.",
-        keyPeople: "Conflicting direct reports:  Jessica and Ben."
-    },
-    {
-        name: "Alex Petrov",
-        gender: "Male",
-        industry: "Startup",
-        role: "Founder & CEO",
-        challenges: "I change priorities constantly; I struggle to translate vision into actionable steps; I get bored with execution details.",
-        goals: "Get his team to be more proactive and take more ownership.",
-        internalState: "Energetic, charming, but also frustrated.",
-        keyPeople: "His COO, Laura, who tries to manage the chaos."
-    },
-    {
-        name: "Sarah Jenkins",
-        gender: "Female",
-        industry: "Small Investment Bank",
-        role: "Chief Financial Officer",
-        challenges: "I feel my work is stale and unfulfilling; I am grappling with a loss of purpose and identity outside my successful career.",
-        goals: "Figure out a plan for the next phase of her career.",
-        internalState: "Bored, conflicted, guilty, analytical.",
-        keyPeople: "Her husband, David, who is supportive but doesn't understand."
-    },
-    {
-        name: "James Williams",
-        gender: "Male",
-        industry: "Advertising conglomerate",
-        role: "Art Director",
-        challenges: "I am a new manager and I am overwhelmed by the demands of leading a team; I struggle with setting boundaries and saying no.",
-        goals: "Get his team to produce higher quality work so he doesn't have to redo it himself.",
-        internalState: "Passionate, frustrated, defensive.",
-        keyPeople: "Two junior designers threatening to quit:  Leo and Mia."
-    },
-    {
-        name: "Dr. Emily Carter",
-        gender: "Female",
-        industry: "The largest hospital in a large metropolis",
-        role: "Chief of Surgery",
-        challenges: "I am a high-achiever who is constantly seeking external validation; I struggle with imposter syndrome and burnout.",
-        goals: "Find ways to reduce burnout and turnover in her department.",
-        internalState: "Confident, decisive, perhaps a bit annoyed.",
-        keyPeople: "A senior resident, Dr. Evans, who gave her direct feedback about her recent performance."
-    },
-    {
-        name: "Michael Thompson",
-        gender: "Male",
-        industry: "Tier 1 automotive supplier",
-        role: "VP of Sales",
-        challenges: "I am a creative who struggles with structure and discipline; I procrastinate and miss deadlines.",
-        goals: "Find a way to trust his team to close big deals so he can focus on strategy.",
-        internalState: "Charismatic, impatient, competitive.",
-        keyPeople: "His top Sales Director, Karen, who is ready for more responsibility."
-    },
-    {
-        name: "Chloe Davis",
-        gender: "Female",
-        industry: "Small insurance agency",
-        role: "New CEO (Internal Promote)",
-        challenges: "I am a seasoned executive who is resistant to change; I cling to old methods and fear disrupting the status quo.",
-        goals: "Gain confidence and stop feeling like a fraud in her new role.",
-        internalState: "Hesitant, anxious, seeks validation.",
-        keyPeople: "The Board Chairman, Mr. Harrison, who championed her promotion."
-    },
-    {
-        name: "Kenji Tanaka",
-        gender: "Male",
-        industry: "Pharmaceuticals",
-        role: "Head of R&D",
-        challenges: "I am a team player who avoids the spotlight; I struggle with self-promotion and advocating for my ideas.",
-        goals: "Get his team to think bigger and be more innovative.",
-        internalState: "Intellectual, calm, risk-averse.",
-        keyPeople: "A promising but cautious scientist on his team, Dr. Anya Sharma."
-    },
-    {
-        name: "Fatima Al-Jamil",
-        gender: "Female",
-        industry: "Big 3 Consumer Goods company",
-        role: "Head of Ops (Post-Merger)",
-        challenges: "I am a visionary leader who struggles with the day-to-day operations; I delegate poorly and micromanage when stressed.",
-        goals: "Find a way to successfully merge the two company cultures.",
-        internalState: "Stressed, diplomatic, overwhelmed.",
-        keyPeople: "Two vocal managers from each side:  Steve (old guard) and Nora (new way)."
-    },
-    {
-        name: "Ben Carter",
-        gender: "Male",
-        industry: "Startup",
-        role: "First-time Entrepreneur",
-        challenges: "I am a technical expert who struggles with communicating complex ideas to non-technical stakeholders; I get frustrated when others do not understand.",
-        goals: "Get help with being less overwhelmed and learning to prioritize.",
-        internalState: "Passionate, exhausted, scattered.",
-        keyPeople: "His co-founder, Sam, who is worried about Ben having burnout."
-    },
-    {
-        name: "Olivia Martinez",
-        gender: "Female",
-        industry: "Large manufacturing multinational",
-        role: "General Manager",
-        challenges: "I am a passionate advocate who struggles with diplomacy; I can be perceived as aggressive and confrontational.",
-        goals: "Figure out how to manage former peers who do not respect her new authority.",
-        internalState: "Empathetic, conflicted, harmonious.",
-        keyPeople: "Her former peer and now direct report, Chris."
-    },
-    {
-        name: "Samuel Jones",
-        gender: "Male",
-        industry: "Boutique law firm",
-        role: "Senior Partner, Law Firm",
-        challenges: "I am a natural networker who struggles with deep, meaningful connections; I have many acquaintances but few close confidantes.",
-        goals: "Find motivation for his last two years and explore what is next.",
-        internalState: "Esteemed, reflective, but also dismissive.",
-        keyPeople: "A junior partner he is supposed to mentor, Alicia."
-    },
-    {
-        name: "Dr. Aisha Adebayo",
-        gender: "Female",
-        industry: "Specialty Biotech company",
-        role: "Head of Medical Research",
-        challenges: "I am a data-driven decision-maker who struggles with intuition and emotional intelligence; I over-rely on logic and dismiss feelings.",
-        goals: "Learn how to get her strategic input taken seriously by the board and donors.",
-        internalState: "Brilliant, humble, frustrated.",
-        keyPeople: "The foundation main donor, Mrs. Gable who is going to make a decision on a big grant in the coming days and Aisha needs to impress her."
-    },
-    {
-        name: "Daniel Miller",
-        gender: "Male",
-        industry: "Large distribution warehouse",
-        role: "Plant Manager",
-        challenges: "I am a mentor who struggles with letting go and allowing others to make their own mistakes; I tend to rescue rather than empower.",
-        goals: "Figure out why his team never brings him problems until they are crises.",
-        internalState: "Results-oriented, impatient, intimidating.",
-        keyPeople: "His shift supervisor, Rick, who stopped reporting small issues."
-    },
-    {
-        name: "Isabella Rossi",
-        gender: "Female",
-        industry: "E-commerce startup",
-        role: "Founder, Fashion Brand",
-        challenges: "I am a strategic thinker who struggles with execution; I have great ideas but lack the follow-through to implement them.",
-        goals: "Find a better work-life balance without feeling like the business will fail.",
-        internalState: "Creative, driven, anxious, guilt-ridden.",
-        keyPeople: "Her sister, Maria, who is concerned about her health."
-    },
-    {
-        name: "Marcus Thorne",
-        gender: "Male",
-        industry: "Fortune 100 Technology company",
-        role: "Chief Information Officer",
-        challenges: "I am a resilient individual who struggles with asking for help; I believe I must handle everything myself.",
-        goals: "Get business units to adopt the new IT systems from his failing transformation project.",
-        internalState: "Logical, systematic, frustrated.",
-        keyPeople: "The head of Marketing, Brenda, who is his biggest critic and is waiting for Marcus to fail."
-    },
-    {
-        name: "Carlos Garcia",
-        gender: "Male",
-        industry: "Government / public sector",
-        role: "City Planning Director",
-        challenges: "I am a meticulous planner who struggles with spontaneity and adaptability; I get flustered when things do not go according to plan.",
-        goals: "Find a way to influence stakeholders to get a controversial public project approved.",
-        internalState: "Methodical, patient, struggles to persuade.",
-        keyPeople: "A vocal city council member opposing the project, Eleanor Vance."
-    },
-    {
-        name: "Liam O'Connell",
-        gender: "Male",
-        industry: "Military",
-        role: "Veteran (Career Transition)",
-        challenges: "I am a natural problem-solver who struggles with celebrating successes; I immediately move on to the next challenge.",
-        goals: "Learn how to translate his military skills for the corporate world and get a job.",
-        internalState: "Frustrated, mission-focused, feels like an outsider.",
-        keyPeople: "His wife, Sarah, who is his main support."
-    },
-    {
-        name: "Rachel Goldstein",
-        gender: "Female",
-        industry: "Large law firm",
-        role: "Lawyer (Career Transition)",
-        challenges: "I am an empathetic listener who struggles with setting boundaries; I take on too much of others emotional burdens.",
-        goals: "Explore creative career options and overcome the fear of leaving a safe profession.",
-        internalState: "Pessimistic, analytical, trapped, risk-averse.",
-        keyPeople: "Her father, Jacob, who is a renowned lawyer and has been a role model for Rachel."
-    },
-    {
-        name: "Maya Singh",
-        gender: "Female",
-        industry: "human resources",
-        role: "Stay-at-Home Parent (Career Transition)",
-        challenges: "I am a confident presenter who struggles with receiving constructive criticism; I become defensive and shut down.",
-        goals: "Regain her confidence and create a plan to re-enter the marketing field.",
-        internalState: "Anxious, self-deprecating, apologetic.",
-        keyPeople: "Her supportive husband, Ravi.",
-    },
-    {
-        name: "Tom Henderson",
-        gender: "Male",
-        industry: "Technology consulting",
-        role: "Mid-level Manager (Laid Off)",
-        challenges: "I am a creative innovator who struggles with the practicalities of commercialization; I have brilliant ideas but cannot bring them to market.",
-        goals: "Figure out where to begin his job search after being laid off.",
-        internalState: "Overwhelmed, sad, loyal, resistant.",
-        keyPeople: "His former long-time manager, Paul who is looking for opportunities for Tom to try out his ideas"
-    },
-    {
-        name: "Dr. Evelyn Reed",
-        gender: "Female",
-        industry: "Academia",
-        role: "Tenured Professor (Career Transition)",
-        challenges: "I am a decisive leader who struggles with patience; I expect immediate results and get frustrated by delays.",
-        goals: "Explore a potential move into corporate consulting and resolve her internal conflict.",
-        internalState: "Intellectual, conflicted, cynical, curious.",
-        keyPeople: "A former student, Brian, who is successful in consulting."
-    },
-    {
-        name: "Kevin Wu",
-        gender: "Male",
-        industry: "Technology Development",
-        role: "Software Engineer (Career Coaching)",
-        challenges: "I am a supportive colleague who struggles with self-care; I put others needs before my own and neglect my well-being.",
-        goals: "Understand why he is not getting promoted and what he needs to do differently.",
-        internalState: "Introverted, logical, frustrated.",
-        keyPeople: "His manager, Phil, and a recently promoted peer, Anna who Kevin helped prepare for promotion, while also applying for the same promotional opportunity."
-    },
-    {
-        name: "Sofia Petrova",
-        gender: "Female",
-        industry: "Consulting",
-        role: "Junior Consultant (Career Coaching)",
-        challenges: "I am a detail-oriented professional who struggles with the big picture; I get lost in the weeds and miss strategic opportunities.",
-        goals: "Understand and act on the feedback she is receiving to improve her performance.",
-        internalState: "Eager to please, sensitive, detail-oriented.",
-        keyPeople: "Her project manager, Diane who has recently provided this feedback."
-    },
-    {
-        name: "Jordan Lee",
-        gender: "Male",
-        industry: "Graphic design",
-        role: "Freelance Designer (Career Coaching)",
-        challenges: "I am a persuasive communicator who struggles with active listening; I am more focused on getting my point across than understanding others.",
-        goals: "Gain confidence to negotiate higher rates and land bigger clients.",
-        internalState: "Creative, passionate, insecure.",
-        keyPeople: "A potential large client, Frank from Acme Corp. who is looking for a fresh face in the field of graphic design."
-    },
-    {
-        name: "Brenda Johnson",
-        gender: "Female",
-        industry: "Rural hospital",
-        role: "Nurse Manager (Career Coaching)",
-        challenges: "I am a collaborative team member who struggles with independent decision-making; I always seek consensus and avoid taking sole responsibility.",
-        goals: "Decide whether to go back to school or apply for the Director role now.",
-        internalState: "Practical, caring, indecisive.",
-        keyPeople: "The current Director of Nursing who is retiring, Mary-Anne and who wants Brenda to apply for her position."
-    },
-    {
-        name: "Amir Khan",
-        gender: "Male",
-        industry: "AI based startup",
-        role: "Data Scientist (Career Coaching)",
-        challenges: "I am an ambitious individual who struggles with work-life balance; I am constantly striving for more and neglect my personal life.",
-        goals: "Figure out how to proactively ask his manager for more challenging projects.",
-        internalState: "Thoughtful, quiet, passive, non-confrontational.",
-        keyPeople: "His manager, Chen who is a hard task master when it comes to project quality."
-    },
-     ];
-
-    const unsubscribe = onSnapshot(collection(db, "personas"), (snapshot) => {
-        const communityPersonas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // Combine fallback and community personas, avoiding duplicates by name
-        const combined = [...fallbackPersonas, ...communityPersonas];
-        const uniquePersonas = Array.from(new Set(combined.map(p => p.name)))
-                                    .map(name => combined.find(p => p.name === name));
-        
-        setPersonas(uniquePersonas.length > 0 ? uniquePersonas : fallbackPersonas);
-    }, (error) => {
-        console.error("Error fetching personas: ", error);
-        setPersonas(fallbackPersonas); // Fallback on error
-    });
-
-    // Clean up the listener when the component unmounts
-    return () => unsubscribe();
-  }, []); // Empty array ensures this runs only on mount
-
-  // --- This function now saves to Firestore ---
-  const startCustomSimulation = async () => {
-      const { name, industry, role, challenges, goals, gender, internalState, keyPeople } = customPersona;
-      if (!role || !challenges || !goals) { alert("Fill out Role, Challenges, Goals."); return; }
-      
-      const newPersona = { 
-          name: name.trim() || `A ${role}`, 
-          industry: industry || 'Not specified', 
-          role, 
-          challenges, 
-          goals, 
-          gender, // Gender is included from the form
-          internalState: internalState || 'Not specified', 
-          keyPeople: keyPeople || 'Not specified',
-          createdBy: currentUser.uid, // Track who created it
-          creatorEmail: currentUser.email // Track who created it
-      };
-      
-      startSimulationWithPersona(newPersona);
-      
-      // Save the new persona to the public Firestore collection
-      try { 
-          await addDoc(collection(db, "personas"), newPersona); 
-      } catch (error) { 
-          console.error("Error adding persona:", error); 
-          // Don't block the user, just log the error
-      }
   };
 
   const startRandomSimulation = () => {
-      if (personas.length === 0) { alert("Personas loading."); return; }
-      const p = personas[Math.floor(Math.random() * personas.length)];
-      startSimulationWithPersona(p);
+    if (personas.length === 0) return;
+    const p = personas[Math.floor(Math.random() * personas.length)];
+    startSimulationWithPersona(p);
+  };
+
+  const startCustomSimulation = async () => {
+    const { role, challenges, goals } = customPersona;
+    if (!role || !challenges || !goals) { alert("Fill out Role, Challenges, Goals."); return; }
+    const newPersona = { ...customPersona, name: customPersona.name.trim() || `A ${role}`, createdBy: currentUser?.uid || 'guest' };
+    startSimulationWithPersona(newPersona);
+    try { await addDoc(collection(db, "personas"), newPersona); } catch (e) {}
   };
 
   useEffect(() => {
-    if (chatWindowRef.current) {
-      chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight;
-    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      const newHistory = [...history, { role: 'user', text: transcript }];
+      setShowHint(false);
+      setHistory(newHistory);
+      handleAiResponse(newHistory);
+    };
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
   }, [history]);
 
-  if (error) {
-    return ( <Card className="max-w-2xl mx-auto text-center"><Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm absolute top-6 right-6">&larr; Back</Button><IconWrapper><X className="w-8 h-8 text-red-500" /></IconWrapper><h1 className="text-2xl mt-4 mb-2">Not Supported</h1><p>{error}</p></Card> );
-  }
-// This step is now skipped by the bypass
-  //if (simulationStep === 'generatingImage') {
-    //return ( <Card className="max-w-2xl mx-auto text-center"><LoadingSpinner text="Generating client portrait..." /></Card> );
-  //}
+  useEffect(() => {
+    const fallbackPersonas = [
+        { name: 'Alex Chen', gender: 'Female', industry: 'Tech Startup', role: 'New Manager', challenges: "Drowning in work, don't trust team. Ben missed deadline, fixed it myself.", goals: "Delegate effectively without losing control.", internalState: "Anxious, frustrated.", keyPeople: "Ben (Direct Report)." },
+        { name: 'Maria Rodriguez', gender: 'Female', industry: 'Corp Finance', role: 'Senior Exec', challenges: "Promotion feels empty.", goals: "Understand disconnect.", internalState: "Numb, apathetic.", keyPeople: "Cynthia (Boss)." },
+        { name: "Priya Sharma", gender: "Female", industry: "Technology", role: "Director of Product", challenges: "Identity tied to expertise; fear failure.", goals: "Delegation strategies.", internalState: "Overwhelmed.", keyPeople: "Boss Mark." },
+        { name: "David Chen", gender: "Male", industry: "Engineering", role: "Senior Manager", challenges: "Skeptical of soft skills; perfectionism.", goals: "Better communication.", internalState: "Defensive.", keyPeople: "Director Susan." },
+        { name: "Maria Flores", gender: "Female", industry: "Fortune 100", role: "Head of People", challenges: "Conflict avoidance.", goals: "Resolve toxic conflict.", internalState: "Anxious.", keyPeople: "Jessica and Ben." },
+        { name: "Alex Petrov", gender: "Male", industry: "Startup", role: "Founder & CEO", challenges: "Changing priorities.", goals: "Team ownership.", internalState: "Frustrated.", keyPeople: "COO Laura." },
+        { name: "Sarah Jenkins", gender: "Female", industry: "Investment Bank", role: "CFO", challenges: "Loss of purpose.", goals: "Next career phase.", internalState: "Bored.", keyPeople: "Husband David." },
+        { name: "James Williams", gender: "Male", industry: "Advertising", role: "Art Director", challenges: "Boundary setting.", goals: "Quality output.", internalState: "Frustrated.", keyPeople: "Leo and Mia." },
+        { name: "Dr. Emily Carter", gender: "Female", industry: "Hospital", role: "Chief of Surgery", challenges: "Burnout; imposter syndrome.", goals: "Reduce turnover.", internalState: "Decisive.", keyPeople: "Resident Dr. Evans." },
+        { name: "Michael Thompson", gender: "Male", industry: "Automotive", role: "VP of Sales", challenges: "Procrastination.", goals: "Trust team with deals.", internalState: "Competitive.", keyPeople: "Director Karen." },
+        { name: "Chloe Davis", gender: "Female", industry: "Insurance", role: "New CEO", challenges: "Resistant to change.", goals: "Gain confidence.", internalState: "Hesitant.", keyPeople: "Board Chair Mr. Harrison." },
+        { name: "Kenji Tanaka", gender: "Male", industry: "Pharma", role: "Head of R&D", challenges: "Team player avoiding spotlight.", goals: "Innovation.", internalState: "Calm.", keyPeople: "Anya Sharma." },
+        { name: "Fatima Al-Jamil", gender: "Female", industry: "Consumer Goods", role: "Head of Ops", challenges: "Poor delegation.", goals: "Culture merger.", internalState: "Overwhelmed.", keyPeople: "Steve and Nora." },
+        { name: "Ben Carter", gender: "Male", industry: "Startup", role: "Entrepreneur", challenges: "Communication gaps.", goals: "Prioritization.", internalState: "Exhausted.", keyPeople: "Co-founder Sam." },
+        { name: "Olivia Martinez", gender: "Female", industry: "Manufacturing", role: "General Manager", challenges: "Aggressive perception.", goals: "Manage peers.", internalState: "Empathetic.", keyPeople: "Chris." },
+        { name: "Samuel Jones", gender: "Male", industry: "Law Firm", role: "Partner", challenges: "Lack of deep connections.", goals: "Retirement plan.", internalState: "Reflective.", keyPeople: "Junior Alicia." },
+        { name: "Dr. Aisha Adebayo", gender: "Female", industry: "Biotech", role: "Head of Research", challenges: "Logic vs intuition.", goals: "Strategic input.", internalState: "Frustrated.", keyPeople: "Donor Mrs. Gable." },
+        { name: "Daniel Miller", gender: "Male", industry: "Distribution", role: "Plant Manager", challenges: "Rescuing vs empowering.", goals: "Team autonomy.", internalState: "Impatient.", keyPeople: "Supervisor Rick." },
+        { name: "Isabella Rossi", gender: "Female", industry: "E-commerce", role: "Founder", challenges: "Lack of follow-through.", goals: "Work-life balance.", internalState: "Anxious.", keyPeople: "Sister Maria." },
+        { name: "Marcus Thorne", gender: "Male", industry: "Technology", role: "CIO", challenges: "Resilient but won't ask for help.", goals: "System adoption.", internalState: "Systematic.", keyPeople: "Brenda." },
+        { name: "Carlos Garcia", gender: "Male", industry: "Public Sector", role: "Director", challenges: "Flustered by change.", goals: "Influence stakeholders.", internalState: "Methodical.", keyPeople: "Eleanor Vance." },
+        { name: "Liam O'Connell", gender: "Male", industry: "Military", role: "Veteran", challenges: "Moves immediately to next challenge.", goals: "Military skill translation.", internalState: "Mission-focused.", keyPeople: "Wife Sarah." },
+        { name: "Rachel Goldstein", gender: "Female", industry: "Law Firm", role: "Lawyer", challenges: "Emotional burdens.", goals: "Creative options.", internalState: "Trapped.", keyPeople: "Father Jacob." },
+        { name: "Maya Singh", gender: "Female", industry: "HR", role: "Stay-at-Home Parent", challenges: "Constructive criticism defensiveness.", goals: "Regain confidence.", internalState: "Anxious.", keyPeople: "Husband Ravi." },
+        { name: "Tom Henderson", gender: "Male", industry: "Consulting", role: "Manager", challenges: "Commercialization gaps.", goals: "Job search.", internalState: "Sad.", keyPeople: "Manager Paul." },
+        { name: "Dr. Evelyn Reed", gender: "Female", industry: "Academia", role: "Professor", challenges: "Decisive but impatient.", goals: "Consulting move.", internalState: "Cynical.", keyPeople: "Brian." },
+        { name: "Kevin Wu", gender: "Male", industry: "Technology", role: "Engineer", challenges: "Neglecting well-being.", goals: "Promotion path.", internalState: "Introverted.", keyPeople: "Manager Phil." },
+        { name: "Sofia Petrova", gender: "Female", industry: "Consulting", role: "Junior Consultant", challenges: "Missing strategic opportunities.", goals: "Performance improvement.", internalState: "Detail-oriented.", keyPeople: "Diane." },
+        { name: "Jordan Lee", gender: "Male", industry: "Design", role: "Freelance Designer", challenges: "Listening gaps.", goals: "Negotiate rates.", internalState: "Insecure.", keyPeople: "Frank." },
+        { name: "Brenda Johnson", gender: "Female", industry: "Hospital", role: "Nurse Manager", challenges: "Avoiding sole responsibility.", goals: "Decision path.", internalState: "Practical.", keyPeople: "Mary-Anne." },
+        { name: "Amir Khan", gender: "Male", industry: "AI Startup", role: "Data Scientist", challenges: "Work-life balance.", goals: "Challenging projects.", internalState: "Quiet.", keyPeople: "Manager Chen." }
+       ];
 
-  // Render logic for 'chat', 'options', 'select', 'create' steps follows...
-  // (Keeping the JSX structure the same as in your original App.jsx for these steps)
-      if (simulationStep === 'chat') {
-        return (
-          <Card className="max-w-5xl mx-auto h-[85vh] flex flex-col md:flex-row gap-8">
-            <div className="md:w-1/3 flex flex-col items-center justify-center space-y-4">
-                {personaImage ? (
-                    <img src={personaImage} alt="AI Persona" className={`rounded-full w-48 h-48 object-cover shadow-lg transition-all duration-300 ${isSpeaking ? 'ring-4 ring-stone-400 ring-offset-4 animate-pulse' : 'ring-4 ring-transparent'}`} />
-                ) : (
-                    <div className="rounded-full w-48 h-48 bg-slate-200 flex items-center justify-center">
-                        <User className="w-24 h-24 text-slate-400" />
-                    </div>
-                )}
-                {/* --- ADD THIS ENTIRE BLOCK --- */}
-        <div className="text-center w-full px-4">
-            <h2 className="text-2xl font-bold text-slate-800">{persona.name}</h2>
-            <p className="text-slate-600 italic">{persona.role}</p>
-            <div className="text-left text-sm mt-4 border-t pt-4">
-              <p className="text-slate-700"><strong>Challenges:</strong> {persona.challenges}</p>
-              <p className="text-slate-700 mt-2"><strong>Goals:</strong> {persona.goals}</p>
-              <p className="text-slate-700 mt-2"><strong>Current State</strong> {persona.internalState}</p>
-              <p className="text-slate-700 mt-2"><strong>Key People:</strong>{persona.keyPeople}</p>
+    const unsubscribe = onSnapshot(collection(db, "personas"), (snapshot) => {
+        const community = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPersonas([...fallbackPersonas, ...community]);
+    }, () => setPersonas(fallbackPersonas));
+    return () => unsubscribe();
+  }, []);
+
+  const handleEndAndEvaluate = useCallback(async () => {
+    if (history.length < 2) { alert("Speak more first."); return; }
+    setIsEvaluating(true);
+    const transcript = history.map(m => `${m.role === 'user' ? 'Coach' : 'Client'}: ${m.text}`).join('\n');
+    try {
+       const fullReport = {};
+       const compSchema = {type: "OBJECT", properties: { evaluation: { type: "ARRAY", items: { type: "OBJECT", properties: { competency: { type: "STRING" }, rating: { type: "STRING" }, justification: { type: "STRING" } }, required: ["competency", "rating", "justification"] } } } };
+       fullReport.evaluation = (await callGeminiAPI(`Analyze ICF competencies 3-8. Return JSON. Transcript: ${transcript}`, compSchema)).evaluation;
+       setEvaluationResult(fullReport);
+       setView('result');
+    } catch(e) {} finally { setIsEvaluating(false); }
+ }, [history, setView, setEvaluationResult]);
+
+  // --- RENDERING LOGIC ---
+  if (simulationStep === 'generatingImage') return <Card className="max-w-2xl mx-auto text-center h-[50vh] flex flex-col justify-center bg-white"><LoadingSpinner text="Connecting to Studio..." /></Card>;
+
+  if (simulationStep === 'chat') {
+    return (
+      <div className="max-w-6xl mx-auto h-[85vh] flex flex-col md:flex-row gap-6">
+        <div className="md:w-2/3 relative bg-slate-200 rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-white">
+            {personaImage ? <img src={personaImage} alt="Client" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100 flex items-center justify-center"><User className="w-32 h-32 text-slate-300" /></div>}
+            <div className="absolute top-6 left-6 flex items-center gap-2 bg-white/20 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/30"><div className="w-2.5 h-2.5 bg-rose-600 rounded-full animate-pulse" /><span className="text-white text-[10px] font-black uppercase tracking-widest">Live</span></div>
+            <button onClick={() => setSimulationStep('options')} className="absolute top-6 right-6 bg-white/10 hover:bg-white/30 backdrop-blur-md text-white p-2.5 rounded-2xl transition-all"><LogOut className="w-5 h-5" /></button>
+            <div className="absolute bottom-10 left-8 bg-white/80 backdrop-blur-2xl px-6 py-3 rounded-[1.5rem] border border-white/50 shadow-xl"><p className="text-slate-900 font-black text-sm">{persona.name}</p><p className="text-slate-500 text-[10px] font-bold uppercase">{persona.role}</p></div>
+            <div className="absolute bottom-10 right-8 w-32 h-12 flex items-end"><canvas ref={canvasRef} width="128" height="48" className="w-full h-full" /></div>
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4">
+                {showHint && !isMuted && !isListening && <div className="bg-rose-800 text-white text-[10px] font-black px-4 py-1.5 rounded-full animate-bounce shadow-xl uppercase">Your Turn</div>}
+                <div className="bg-white/10 backdrop-blur-3xl p-3 rounded-[2rem] border border-white/20 flex items-center gap-4 shadow-2xl">
+                    <button onClick={() => setIsMuted(!isMuted)} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-rose-600 text-white' : 'bg-white/20 text-white hover:bg-white/40'}`}>{isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}</button>
+                    <button onClick={toggleListen} disabled={isSpeaking || isThinking || isMuted} className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${isListening ? 'bg-rose-800 scale-110' : 'bg-white text-rose-800 shadow-lg'}`}><div className={`w-3.5 h-3.5 rounded-full ${isListening ? 'bg-white animate-ping' : 'bg-rose-800'}`} /></button>
+                    <button onClick={handleEndAndEvaluate} className="w-14 h-14 rounded-full bg-rose-600 hover:bg-rose-700 flex items-center justify-center shadow-lg"><PhoneOff className="text-white w-6 h-6" /></button>
+                </div>
             </div>
         </div>
-        {/* --- END OF BLOCK TO ADD --- */}
-                <div className="text-center">
-                    <button onClick={toggleListen} disabled={isSpeaking || isThinking} className={`relative w-24 h-24 rounded-full transition-all duration-300 ease-in-out flex items-center justify-center text-white disabled:opacity-50 ${isListening ? 'bg-red-500 animate-pulse' : 'bg-stone-600 hover:bg-stone-700'}`}>
-                        <Mic size={40} />
-                    </button>
-                    <p className="mt-4 text-slate-600 h-6">
-                        {isListening ? "Listening..." : isThinking ? "Thinking..." : isSpeaking ? "Client is speaking..." : "Tap the mic to speak"}
-                    </p>
+        <div className="md:w-1/3 flex flex-col gap-4">
+            <div className="bg-rose-800 rounded-[2rem] p-6 text-white shadow-xl shadow-rose-200"><h3 className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Focus</h3><p className="text-xs font-bold leading-relaxed">{persona.challenges}</p></div>
+            <div className="bg-white flex-grow rounded-[2rem] border border-slate-100 shadow-xl flex flex-col overflow-hidden">
+                <div className="p-4 border-b border-slate-50 flex justify-between bg-slate-50/50"><h3 className="text-slate-800 font-black text-[10px] uppercase">Transcript</h3></div>
+                <div ref={chatWindowRef} className="flex-grow overflow-y-auto p-6 space-y-4">
+                  {history.map((msg, index) => (<div key={index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}><div className={`max-w-[90%] p-4 rounded-2xl text-xs font-medium shadow-sm ${msg.role === 'user' ? 'bg-rose-50 text-rose-900 border border-rose-100' : 'bg-slate-50 text-slate-700 border border-slate-100'}`}>{msg.text}</div></div>))}
+                  {isThinking && <div className="text-rose-800/30 text-[10px] font-bold animate-pulse uppercase text-center w-full">Thinking...</div>}
                 </div>
             </div>
+        </div>
+      </div>
+    );
+  }
 
-            <div className="md:w-2/3 flex flex-col">
-                <div className="flex justify-between items-center mb-4 pb-4 border-b">
-                  <div><h1 className="text-2xl font-bold text-slate-800">Voice Simulation</h1></div>
-                  <Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm">&larr; Back</Button>
+  if (simulationStep === 'select') {
+    return (
+      <Card className="max-w-2xl mx-auto bg-white">
+        <div className="flex justify-between items-center mb-10"><h2 className="text-3xl font-bold text-slate-900 tracking-tight">Persona Database</h2><Button onClick={() => setSimulationStep('options')} variant="secondary" className="text-xs">Back</Button></div>
+        <div className="grid gap-4 max-h-[60vh] overflow-y-auto pr-2">
+          {personas.map(p => (
+            <button key={p.name} onClick={() => startSimulationWithPersona(p)} className="w-full text-left p-6 border border-slate-100 rounded-3xl hover:border-rose-500 hover:bg-rose-50/20 transition-all bg-slate-50/30"><div className="flex justify-between items-start mb-3"><h3 className="font-bold text-slate-800 text-lg">{p.name}</h3><span className="text-[9px] bg-white text-slate-400 border border-slate-100 px-3 py-1 rounded-full font-bold uppercase">{p.industry}</span></div><p className="text-rose-800 text-xs font-black mb-2 uppercase">{p.role}</p><p className="text-slate-500 text-[11px] line-clamp-2 leading-relaxed">{p.challenges}</p></button>
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  if (simulationStep === 'create') {
+    return (
+        <Card className="max-w-2xl mx-auto bg-white">
+            <div className="flex justify-between items-center mb-8"><h2 className="text-3xl font-bold text-slate-900">New Client</h2><Button onClick={() => setSimulationStep('options')} variant="secondary">Back</Button></div>
+            <div className="space-y-4 text-left">
+                <div className="grid grid-cols-2 gap-4">
+                    <div><label className="text-xs font-bold text-slate-500 uppercase ml-2">Name</label><input type="text" placeholder="e.g. Alex" value={customPersona.name} onChange={(e) => setCustomPersona({...customPersona, name: e.target.value})} className="w-full p-4 border border-slate-100 bg-slate-50/50 rounded-2xl text-sm mt-1"/></div>
+                    <div><label className="text-xs font-bold text-slate-500 uppercase ml-2">Gender</label><select value={customPersona.gender} onChange={(e) => setCustomPersona({...customPersona, gender: e.target.value})} className="w-full p-4 border border-slate-100 bg-slate-50/50 rounded-2xl text-sm mt-1"><option value="Female">Female</option><option value="Male">Male</option></select></div>
                 </div>
-
-                <div ref={chatWindowRef} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6">
-                  {history.map((msg, index) => (
-                    <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                      {msg.role === 'model' && <div className="bg-stone-700 text-white rounded-full p-2"><Bot size={20} /></div>}
-                      <div className={`max-w-md p-4 rounded-2xl ${msg.role === 'user' ? 'bg-slate-200 text-slate-800' : 'bg-stone-700 text-white'}`}>{msg.text}</div>
-                      {msg.role === 'user' && <div className="bg-slate-200 text-slate-800 rounded-full p-2"><User size={20} /></div>}
-                    </div>
-                  ))}
-                </div>
-
-                <Button onClick={handleEndAndEvaluate} disabled={isEvaluating} variant="secondary" className="w-full mt-4">
-                    {isEvaluating ? 'Evaluating...' : 'End Simulation & Evaluate'}
-                </Button>
+                <div><label className="text-xs font-bold text-slate-500 uppercase ml-2">Professional Role</label><input type="text" placeholder="e.g. Senior Manager" value={customPersona.role} onChange={(e) => setCustomPersona({...customPersona, role: e.target.value})} className="w-full p-4 border border-slate-100 bg-slate-50/50 rounded-2xl text-sm mt-1"/></div>
+                <div><label className="text-xs font-bold text-slate-500 uppercase ml-2">Challenges</label><textarea placeholder="Describe the problem..." value={customPersona.challenges} onChange={(e) => setCustomPersona({...customPersona, challenges: e.target.value})} className="w-full h-24 p-4 border border-slate-100 bg-slate-50/50 rounded-2xl text-sm mt-1"/></div>
+                <div><label className="text-xs font-bold text-slate-500 uppercase ml-2">Goals</label><textarea placeholder="What do they want to achieve?" value={customPersona.goals} onChange={(e) => setCustomPersona({...customPersona, goals: e.target.value})} className="w-full h-24 p-4 border border-slate-100 bg-slate-50/50 rounded-2xl text-sm mt-1"/></div>
+                <Button onClick={startCustomSimulation} className="w-full py-5 text-lg bg-rose-800 hover:bg-rose-900 text-white shadow-xl">Initialize Studio Session</Button>
             </div>
-          </Card>
-        );
-      }
+        </Card>
+    );
+  }
 
-      if (simulationStep === 'options') {
-        return (
-          <Card className="max-w-2xl mx-auto text-center">
-            <div className="flex justify-end">
-                <Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm absolute top-6 right-6">&larr; Back</Button>
-            </div>
-            <IconWrapper><Mic className="w-8 h-8" /></IconWrapper>
-            <h1 className="text-3xl font-bold text-slate-800 mt-4 mb-4">Voice Simulation Options</h1>
-            <p className="text-slate-600 mb-8">How would you like to start your coaching simulation?</p>
-            <div className="space-y-4">
-                <Button onClick={startRandomSimulation} variant="secondary" className="w-full" disabled={personas.length === 0}><Dices className="w-5 h-5" /> Select a Random Persona</Button>
-                <Button onClick={() => setSimulationStep('select')} variant="secondary" className="w-full"><List className="w-5 h-5" /> Use Pre-populated Persona</Button>
-                <Button onClick={() => setSimulationStep('create')} variant="secondary" className="w-full"><UserPlus className="w-5 h-5" /> Create Your Own Custom Persona</Button>
-            </div>
-          </Card>
-        );
-      }
-
-      if (simulationStep === 'select') {
-        return (
-          <Card className="max-w-2xl mx-auto">
-            <div className="flex justify-between items-start mb-4">
-                <h1 className="text-3xl font-bold text-slate-800">Choose a Client Persona</h1>
-                <Button onClick={() => setSimulationStep('options')} variant="secondary" className="px-3 py-1 text-sm">&larr; Back</Button>
-            </div>
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-4 -mr-4">
-              {personas.map(p => (
-                <button key={p.name} onClick={() => {
-                    startSimulationWithPersona(p);
-                }} className="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-stone-50 hover:border-stone-400 transition">
-                  <h3 className="font-bold text-lg text-stone-700">{p.name}</h3>
-                  <p className="text-slate-600 text-sm"><span className="font-semibold">Role:</span> {p.role}</p>
-                  <p className="text-slate-600 text-sm"><span className="font-semibold">Challenges:</span> {p.challenges}</p>
-                </button>
-              ))}
-            </div>
-          </Card>
-        );
-      }
-
-      if (simulationStep === 'create') {
-        return (
-            <Card className="max-w-2xl mx-auto">
-                <div className="flex justify-between items-start mb-4">
-                    <h1 className="text-3xl font-bold text-slate-800">Create Custom Persona</h1>
-                    <Button onClick={() => setSimulationStep('options')} variant="secondary" className="px-4 py-2 text-sm">&larr; Back</Button>
-                </div>
-                <div className="space-y-4">
-                    {/* Form inputs identical to original App.jsx */}
-                     <div>
-                    <label htmlFor="persona-name" className="block text-sm font-medium text-slate-700 mb-1">Name (Optional)</label>
-                    <input type="text" id="persona-name" value={customPersona.name} onChange={(e) => setCustomPersona({...customPersona, name: e.target.value})} placeholder="e.g., Alex Chen" className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
-                    </div>
-                    <div className="text-left">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Gender</label>
-                    <div className="flex gap-4">
-                        <label className="flex items-center">
-                        <input type="radio" name="gender" value="Female" checked={customPersona.gender === 'Female'} onChange={(e) => setCustomPersona({...customPersona, gender: e.target.value})} className="h-4 w-4 text-stone-600 border-gray-300 focus:ring-stone-500" />
-                        <span className="ml-2 text-slate-700">Female</span>
-                        </label>
-                        <label className="flex items-center">
-                        <input type="radio" name="gender" value="Male" checked={customPersona.gender === 'Male'} onChange={(e) => setCustomPersona({...customPersona, gender: e.target.value})} className="h-4 w-4 text-stone-600 border-gray-300 focus:ring-stone-500" />
-                        <span className="ml-2 text-slate-700">Male</span>
-                        </label>
-                    </div>
-                    </div>
-                    <div>
-                        <label htmlFor="persona-role" className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                        <input type="text" id="persona-role" value={customPersona.role} onChange={(e) => setCustomPersona({...customPersona, role: e.target.value})} placeholder="e.g., New Manager" className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
-                    </div>
-                    <div>
-                        <label htmlFor="persona-challenges" className="block text-sm font-medium text-slate-700 mb-1">Specific Challenges</label>
-                        <textarea id="persona-challenges" value={customPersona.challenges} onChange={(e) => setCustomPersona({...customPersona, challenges: e.target.value})} placeholder="e.g., My direct report, Ben, missed a deadline..." className="w-full h-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
-                    </div>
-                    <div>
-                        <label htmlFor="persona-goals" className="block text-sm font-medium text-slate-700 mb-1">Goals for the coaching session</label>
-                        <textarea id="persona-goals" value={customPersona.goals} onChange={(e) => setCustomPersona({...customPersona, goals: e.target.value})} placeholder="e.g., Learn how to delegate effectively..." className="w-full h-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
-                    </div>
-                    <div>
-                        <label htmlFor="persona-internal-state" className="block text-sm font-medium text-slate-700 mb-1">Internal State (How the client feels)</label>
-                        <textarea id="persona-internal-state" value={customPersona.internalState} onChange={(e) => setCustomPersona({...customPersona, internalState: e.target.value})} placeholder="e.g., Anxious, frustrated..." className="w-full h-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
-                    </div>
-                    <div>
-                        <label htmlFor="persona-key-people" className="block text-sm font-medium text-slate-700 mb-1">Key People (Colleagues, managers, etc.)</label>
-                        <textarea id="persona-key-people" value={customPersona.keyPeople} onChange={(e) => setCustomPersona({...customPersona, keyPeople: e.target.value})} placeholder="e.g., Ben (Direct Report) - struggling." className="w-full h-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-stone-500"/>
-                    </div>
-                    <Button onClick={startCustomSimulation} className="w-full">Start Simulation with this Persona</Button>
-                </div>
-            </Card>
-        );
-      }
+  // --- DEFAULT OPTIONS VIEW ---
+  return (
+    <Card className="max-w-2xl mx-auto text-center py-12 bg-white">
+      <Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-xs absolute top-8 right-8">&larr; Main Menu</Button>
+      <IconWrapper><Mic className="w-8 h-8 text-rose-800" /></IconWrapper>
+      <h1 className="text-4xl font-bold text-slate-900 mt-6 mb-4 tracking-tight">Voice Studio</h1>
+      <p className="text-slate-500 mb-10 max-w-sm mx-auto font-medium">Immersive virtual meeting room for ICF competency practice.</p>
+      <div className="grid gap-4 max-w-sm mx-auto">
+          <Button onClick={startRandomSimulation} className="w-full py-6 text-lg bg-rose-800 hover:bg-rose-900 shadow-xl text-white">Instant Random Client</Button>
+          <Button onClick={() => setSimulationStep('select')} variant="secondary" className="w-full border-slate-200 text-slate-700">Browse Persona Database</Button>
+          <Button onClick={() => setSimulationStep('create')} variant="secondary" className="w-full border-slate-200 text-slate-700">Create Custom Client</Button>
+      </div>
+    </Card>
+  );
 };
+
 export default VoiceSimulation;

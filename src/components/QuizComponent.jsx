@@ -448,7 +448,7 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
                     if (selectionStatus) {
                         const isCorrect = option === currentQuestion.correctAnswer;
                         const isSelected = userAnswers[currentQuestionIndex] === option;
-                        if(isCorrect) buttonClass = 'bg-emerald-100 border-emerald-500';
+                        if(isCorrect) buttonClass = 'bg-indigo-100 border-emerald-500';
                         else if (isSelected && !isCorrect) buttonClass = 'bg-rose-100 border-rose-500';
                         else buttonClass = 'bg-slate-50 text-slate-500';
                     }

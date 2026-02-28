@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, Sparkles, Loader2 } from 'lucide-react';
+import { Upload, Sparkles, Loader2, FileText, ArrowLeft } from 'lucide-react';
 import Card from './Card';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
-import { callGeminiAPI } from '../utils/api'; // Assuming api utils are moved to src/utils/api.js
+import { callGeminiAPI } from '../utils/api';
 
 const TranscriptEvaluator = ({ setView, setEvaluationResult }) => {
   const [transcript, setTranscript] = useState('');
@@ -12,14 +12,13 @@ const TranscriptEvaluator = ({ setView, setEvaluationResult }) => {
   const [isParsing, setIsParsing] = useState(false);
   const [error, setError] = useState(null);
 
+  // --- FILE PARSING LOGIC (UNCHANGED) ---
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
     setError(null);
     setTranscript('');
     setIsParsing(true);
-
     const reader = new FileReader();
     try {
       if (file.type === "text/plain") {
@@ -57,140 +56,137 @@ const TranscriptEvaluator = ({ setView, setEvaluationResult }) => {
         setIsParsing(false);
       }
     } catch (e) {
-      setError("Could not load library for this file type.");
+      setError("Library load error.");
       setIsParsing(false);
     }
   };
 
+  // --- STABILIZED SEQUENTIAL EVALUATION ---
   const handleEvaluate = useCallback(async (textToEvaluate) => {
     const finalTranscript = textToEvaluate || transcript;
     if (finalTranscript.trim().length < 50) {
       setError("Transcript is too short to evaluate.");
-      setIsLoading(false);
       return;
     }
     setIsLoading(true);
     setError(null);
 
-    const chunkTranscript = (text, chunkSize = 15000) => {
-        const chunks = [];
-        for (let i = 0; i < text.length; i += chunkSize) {
-            chunks.push(text.substring(i, i + chunkSize));
-        }
-        return chunks;
-    };
-
     try {
       const fullReport = {
         evaluation: [],
         speakerAnalysis: { coachPercentage: 0, clientPercentage: 0 },
+        questionAnalysis: { openEnded: 0, leading: 0, clarifying: 0, observation: 0 },
         keyInsights: [],
         alternativeQuestions: [],
-        questionAnalysis: { openEnded: 0, leading: 0, clarifying: 0, observation: 0 }
+        foundationalCompetencies: [
+            { competency: "1: Ethics", assessmentNote: "Observed basis." },
+            { competency: "2: Mindset", assessmentNote: "N/A" }
+        ]
       };
 
-      const chunks = chunkTranscript(finalTranscript);
+      // TASK 1: COMPETENCIES (Sequential to avoid timeout)
+      setLoadingText("Studio: Rating Competencies (1/3)...");
+      const compPrompt = `Analyze transcript for ICF competencies 3-8. Rating & Justification. Transcript: ${finalTranscript.substring(0, 15000)}`;
+      const compSchema = {type: "OBJECT", properties: { evaluation: { type: "ARRAY", items: { type: "OBJECT", properties: { competency: { type: "STRING" }, rating: { type: "STRING" }, justification: { type: "STRING" } }, required: ["competency", "rating", "justification"] } } } };
+      const compRes = await callGeminiAPI(compPrompt, compSchema);
+      fullReport.evaluation = compRes?.evaluation || [];
 
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-        setLoadingText(`Analyzing chunk ${i + 1} of ${chunks.length}...`);
+      // TASK 2: METRICS
+      setLoadingText("Studio: Calculating Metrics (2/3)...");
+      const metricPrompt = `Talk Time % and Question Categories: ${finalTranscript.substring(0, 15000)}`;
+      const metricSchema = {
+        type: "OBJECT", 
+        properties: { 
+            speakerAnalysis: { type: "OBJECT", properties: { coachPercentage: { type: "NUMBER" }, clientPercentage: { type: "NUMBER" } }, required: ["coachPercentage", "clientPercentage"] },
+            questionAnalysis: { type: "OBJECT", properties: { openEnded: { type: "NUMBER" }, leading: { type: "NUMBER" }, clarifying: { type: "NUMBER" }, observation: { type: "NUMBER" } }, required: ["openEnded", "leading", "clarifying", "observation"] }
+        }
+      };
+      const metricRes = await callGeminiAPI(metricPrompt, metricSchema);
+      fullReport.speakerAnalysis = metricRes?.speakerAnalysis || fullReport.speakerAnalysis;
+      fullReport.questionAnalysis = metricRes?.questionAnalysis || fullReport.questionAnalysis;
 
-        const competencyPrompt = `Analyze the following coaching transcript chunk based on the official ICF Core Competencies. You must evaluate ONLY the following competencies:
-              - Establishes and Maintains Agreements
-              - Cultivates Trust and Safety
-              - Maintains Presence
-              - Listens Actively
-              - Evokes Awareness
-              - Facilitates Client Growth
-              For each of these competencies, provide a rating (Exemplary, Proficient, Sufficient, Needs Development) and a detailed justification with examples from the transcript. Return a JSON object with a single key "evaluation" containing an array of objects. Transcript Chunk: ${chunk}`;
-        const competencySchema = {type: "OBJECT", properties: { evaluation: { type: "ARRAY", items: { type: "OBJECT", properties: { competency: { type: "STRING" }, rating: { type: "STRING" }, justification: { type: "STRING" } } } } } };
-        const competencyResult = await callGeminiAPI(competencyPrompt, competencySchema);
-        fullReport.evaluation.push(...competencyResult.evaluation);
+      // TASK 3: INSIGHTS
+      setLoadingText("Studio: Finalizing Insights (3/3)...");
+      const insightPrompt = `5 insights and 5 questions: ${finalTranscript.substring(0, 15000)}`;
+      const insightSchema = {
+        type: "OBJECT", 
+        properties: { keyInsights: { type: "ARRAY", items: { type: "STRING" } }, alternativeQuestions: { type: "ARRAY", items: { type: "STRING" } } }, 
+        required: ["keyInsights", "alternativeQuestions"]
+      };
+      const insightRes = await callGeminiAPI(insightPrompt, insightSchema);
+      fullReport.keyInsights = insightRes?.keyInsights || [];
+      fullReport.alternativeQuestions = insightRes?.alternativeQuestions || [];
+
+      // --- CRITICAL FIX FOR "n is not a function" ---
+      if (typeof setEvaluationResult === 'function') {
+          setEvaluationResult({ ...fullReport, transcript: finalTranscript });
+          setView('result');
+      } else {
+          console.error("Critical: setEvaluationResult prop is missing from TranscriptEvaluator.");
+          setError("Configuration error: Cannot save results.");
       }
 
-      setLoadingText("Finalizing analysis...");
-
-      const talkTimePrompt = `Analyze the speaker talk time in the full transcript. Estimate the percentage of talk time for the Coach and the Client. Return a JSON object with keys "coachPercentage" and "clientPercentage". Full Transcript: ${finalTranscript}`;
-      const talkTimeSchema = { type: "OBJECT", properties: { coachPercentage: { type: "NUMBER" }, clientPercentage: { type: "NUMBER" } } };
-      fullReport.speakerAnalysis = await callGeminiAPI(talkTimePrompt, talkTimeSchema);
-
-      const insightsPrompt = `Identify up to 5 pivotal moments of client insight from the full transcript. Return a JSON object with a single key "keyInsights" containing an array of strings. Full Transcript: ${finalTranscript}`;
-      const insightsSchema = { type: "OBJECT", properties: { keyInsights: { type: "ARRAY", items: { type: "STRING" } } } };
-      fullReport.keyInsights = (await callGeminiAPI(insightsPrompt, insightsSchema)).keyInsights;
-
-      const questionsPrompt = `Suggest up to 5 powerful, alternative questions the coach could have asked based on the full transcript. Return a JSON object with a single key "alternativeQuestions" containing an array of strings. Full Transcript: ${finalTranscript}`;
-      const questionsSchema = { type: "OBJECT", properties: { alternativeQuestions: { type: "ARRAY", items: { type: "STRING" } } } };
-      fullReport.alternativeQuestions = (await callGeminiAPI(questionsPrompt, questionsSchema)).alternativeQuestions;
-
-      const questionAnalysisPrompt = `Analyze the Coach's dialogue in the full transcript. Categorize each question into 'Open-Ended', 'Leading', 'Clarifying', or 'Observation'. Provide the percentage breakdown. Return a JSON object with keys "openEnded", "leading", "clarifying", and "observation". Full Transcript: ${finalTranscript}`;
-      const questionAnalysisSchema = { type: "OBJECT", properties: { openEnded: { type: "NUMBER" }, leading: { type: "NUMBER" }, clarifying: { type: "NUMBER" }, observation: { type: "NUMBER" } } };
-      fullReport.questionAnalysis = await callGeminiAPI(questionAnalysisPrompt, questionAnalysisSchema);
-
-      fullReport.foundationalCompetencies = [
-          { competency: "1: Demonstrates Ethical Practice", assessmentNote: "Assessed on an 'Observed / Not Observed' basis." },
-          { competency: "2: Embodies a Coaching Mindset", assessmentNote: "Assessed via the ICF Credentialing Exam." }
-      ];
-
-      const consolidatedEval = {};
-      fullReport.evaluation.forEach(item => {
-          if (!consolidatedEval[item.competency]) {
-              consolidatedEval[item.competency] = { justifications: [], ratings: {} };
-          }
-          consolidatedEval[item.competency].justifications.push(item.justification);
-          consolidatedEval[item.competency].ratings[item.rating] = (consolidatedEval[item.competency].ratings[item.rating] || 0) + 1;
-      });
-
-      fullReport.evaluation = Object.keys(consolidatedEval).map(key => {
-          const ratings = consolidatedEval[key].ratings;
-          const topRating = Object.keys(ratings).reduce((a, b) => ratings[a] > ratings[b] ? a : b);
-          return {
-              competency: key,
-              rating: topRating,
-              justification: consolidatedEval[key].justifications.join(' ')
-          };
-      });
-
-      setEvaluationResult({ ...fullReport, transcript: finalTranscript });
-      setView('result');
     } catch (e) {
-      setError(e.message || "An unexpected error occurred during evaluation.");
+      console.error("Analysis Crash:", e);
+      setError("The AI had a temporary hiccup. Please try again.");
     } finally {
       setIsLoading(false);
     }
   }, [transcript, setView, setEvaluationResult]);
 
   return (
-    <Card className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-start">
-        <h1 className="text-3xl font-bold text-slate-800 mb-2">Evaluate a Transcript</h1>
-        <Button onClick={() => setView('home')} variant="secondary" className="px-4 py-2 text-sm">&larr; Back</Button>
+    <Card className="max-w-4xl mx-auto border-rose-100 shadow-xl">
+      <div className="flex justify-between items-start mb-8 border-b border-rose-50 pb-6">
+        <div>
+            <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Evaluate Session Transcripts</h1>
+            <p className="text-rose-800 text-[10px] font-bold uppercase tracking-widest mt-1">Please ensure "Coach" and "Client" are clearly identified in the transcript</p>
+        </div>
+        <Button onClick={() => setView('home')} variant="secondary" className="border-rose-100 text-rose-800">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back
+        </Button>
       </div>
 
-      <p className="text-slate-600 mb-6">Upload a text transcript (.txt, .pdf, or .docx) or paste the content below. Please ensure your transcript has "Coach" and "Client" clearly identified.</p>
-
-      <div>
-        <div className="mb-4 flex items-center gap-4">
-          <label htmlFor="file-upload" className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg ${isParsing ? 'opacity-50' : 'hover:bg-slate-200'}`}>
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center gap-4">
+          <label htmlFor="file-upload" className={`cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-rose-50 text-rose-900 font-bold rounded-2xl border border-rose-100 transition-all hover:bg-rose-100 ${isParsing ? 'opacity-50' : ''}`}>
             <Upload className="w-5 h-5" />
-            <span>Upload Transcript File</span>
+            <span>Upload (.txt, .pdf, .docx)</span>
           </label>
           <input id="file-upload" type="file" className="hidden" accept=".txt,.pdf,.docx" onChange={handleFileChange} disabled={isParsing} />
-           {isParsing && (<div className="flex items-center gap-2 text-slate-600"><Loader2 className="w-5 h-5 animate-spin" /><span>Parsing...</span></div>)}
+           {isParsing && (<div className="flex items-center gap-2 text-rose-800 font-bold italic animate-pulse"><Loader2 className="w-5 h-5 animate-spin" /><span>Parsing...</span></div>)}
         </div>
-        <textarea
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          placeholder="Or paste your transcript here..."
-          className="w-full h-64 p-4 border border-slate-300 rounded-lg"
-          disabled={isParsing}
-        />
-        <Button onClick={() => handleEvaluate()} disabled={!transcript.trim() || isParsing} className="mt-6 w-full md:w-auto">
-          <Sparkles className="w-5 h-5" /> Evaluate Now
+
+        <div className="relative">
+            <textarea
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              placeholder="Paste your transcript here (ensure 'Coach' and 'Client' are identified)..."
+              className="w-full h-80 p-6 border border-rose-50 rounded-[2rem] bg-slate-50/30 focus:ring-2 focus:ring-rose-800 outline-none text-sm leading-relaxed shadow-inner"
+              disabled={isParsing}
+            />
+            {!transcript && !isParsing && (
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
+                    <FileText size={120} className="text-rose-900" />
+                </div>
+            )}
+        </div>
+
+        <Button 
+            onClick={() => handleEvaluate()} 
+            disabled={!transcript.trim() || isParsing || isLoading} 
+            className="w-full py-5 bg-rose-800 hover:bg-rose-900 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-rose-100 transition-all transform active:scale-95"
+        >
+          {isLoading ? "Analyzing..." : <><Sparkles className="w-4 h-4 mr-2" /> Generate Studio Report</>}
         </Button>
       </div>
 
       {isLoading && <LoadingSpinner text={loadingText} />}
-      {error && <p className="text-red-500 mt-4">{error}</p>}
+      {error && (
+        <div className="mt-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-800 text-sm font-bold flex items-center gap-3">
+            <div className="w-2 h-2 bg-rose-800 rounded-full animate-ping" />
+            {error}
+        </div>
+      )}
     </Card>
   );
 };

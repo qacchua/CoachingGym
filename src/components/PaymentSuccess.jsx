@@ -24,12 +24,12 @@ const PaymentSuccess = ({ setView, currentUser }) => {
         const newExpiry = new Date();
         if (planType === 'yearly') {
             // Give 370 days (Year + 5 day buffer)
-            newExpiry.setDate(newExpiry.getDate() + 370); 
+            newExpiry.setDate(newExpiry.getDate() + 365); 
         } else {
             // Default to Monthly: Give 45 days (Month + 15 day buffer)
             // This buffer prevents them from getting locked out immediately 
             // if their payment date shifts slightly.
-            newExpiry.setDate(newExpiry.getDate() + 45); 
+            newExpiry.setDate(newExpiry.getDate() + 30); 
         }
 
         // --- 3. UPDATE FIRESTORE ---

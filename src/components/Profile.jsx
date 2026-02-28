@@ -178,10 +178,15 @@ const Profile = ({ setView, currentUser }) => {
     }
   };
 
-  // --- NAVIGATION HANDLERS ---
-  const handlePreview = () => {
-    setView('publicProfile', { userId: currentUser.uid });
-  };
+ const handlePreview = () => {
+  if (currentUser?.uid) {
+    // This tells App.jsx to switch to the public profile view
+    // and passes the current user's ID as a parameter.
+    setView('publicProfile', { uid: currentUser.uid });
+  } else {
+    console.error("No user ID found for preview");
+  }
+};
 
   const handleHome = () => {
     setView('home');
@@ -226,15 +231,7 @@ const Profile = ({ setView, currentUser }) => {
           >
             <Eye className="w-4 h-4 mr-2" />
             Preview Public Profile
-          </Button>
-
-          <Button 
-            onClick={handleHome} 
-            variant="secondary" 
-            className="px-4 py-2 text-sm flex items-center"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Home
-          </Button>
+          </Button>          
         </div>
       </div>
 
@@ -389,7 +386,7 @@ const Profile = ({ setView, currentUser }) => {
                 {/* SCENARIO B: User is PREMIUM (Show Manage/Cancel) */}
                 {currentTier !== 'Free' && (
                   <div className="flex flex-col items-start md:items-end gap-2">
-                    <div className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-semibold mb-2">
+                    <div className="bg-indigo-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-semibold mb-2">
                       ✓ Active Member
                     </div>
                     <Button onClick={handleManageSubscription} variant="secondary" className="text-sm">

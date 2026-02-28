@@ -34,7 +34,7 @@ const LandingPage = ({ setView }) => {
       description: 'Upload your session transcripts and get instant, rubric-based feedback.',
       icon: FileText,
       color: 'text-emerald-600',
-      bg: 'bg-emerald-50'
+      bg: 'bg-indigo-50'
     },
     {
       title: 'Ethical Dilemmas',

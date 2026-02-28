@@ -2,22 +2,32 @@ import React, { useState } from 'react';
 import { Check, Star, ArrowLeft } from 'lucide-react';
 import Button from './Button';
 import Card from './Card';
-import { stripeConfig } from '../firebaseConfig';
+import { startStripeCheckout } from '../utils/api'; // <-- Import your new API helper!
 
 const PricingPage = ({ setView, currentUser }) => {
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'yearly'
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false); // <-- Tracks loading state
 
- const handleUpgrade = () => {
-    // Use the links from your central config file
-    const link = billingCycle === 'monthly' 
-      ? stripeConfig.monthlyLink 
-      : stripeConfig.yearlyLink;
+  // 1. Put your real Stripe Price IDs here!
+  const MONTHLY_PRICE_ID = "price_1Sa5CvLeECyDRlwVlmjTvXqj";
+  const YEARLY_PRICE_ID = "price_1ScDyGLeECyDRlwVbkv3REWd";
+
+  // 2. The updated handler that calls your Cloud Function
+  const handleUpgrade = async () => {
+    setIsCheckoutLoading(true);
+    
+    try {
+      // Pick the correct ID based on the toggle switch
+      const priceId = billingCycle === 'monthly' ? MONTHLY_PRICE_ID : YEARLY_PRICE_ID;
       
-    if (link) {
-      window.location.href = link; 
-    } else {
-      console.error("Stripe link not found");
-      alert("Payment system is currently offline.");
+      // Call the secure Firebase backend
+      await startStripeCheckout(priceId);
+    } catch (error) {
+      console.error("Failed to start checkout", error);
+      alert("Unable to reach the payment system. Please try again later.");
+    } finally {
+      // We put this in a finally block just in case the redirect fails, it resets the button
+      setIsCheckoutLoading(false); 
     }
   };
   
@@ -60,7 +70,7 @@ const PricingPage = ({ setView, currentUser }) => {
 
           <span className={`text-sm font-medium flex items-center gap-2 ${billingCycle === 'yearly' ? 'text-slate-900' : 'text-slate-500'}`}>
             Yearly
-            <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-bold">
+            <span className="bg-indigo-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-bold">
               SAVE 17%
             </span>
           </span>
@@ -165,14 +175,15 @@ const PricingPage = ({ setView, currentUser }) => {
 
           <Button 
             onClick={handleUpgrade}
-            className="w-full py-6 text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all"
+            disabled={isCheckoutLoading} // <-- Disables button while loading
+            className="w-full py-6 text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Upgrade Now
+            {isCheckoutLoading ? "Loading Secure Checkout..." : "Upgrade Now"}
           </Button>
           <p className="text-xs text-center text-slate-400 mt-3">
             Secure payment via Stripe. Cancel anytime.
           </p>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-center text-slate-400 mt-1">
               Read our <button onClick={() => setView('terms')} className="underline">Terms</button> 
               {' '}&{' '} 
               <button onClick={() => setView('privacy')} className="underline">Refund Policy</button>.

@@ -1,6 +1,5 @@
-import { firebaseConfig } from '../firebaseConfig'; // Import your config
-import { httpsCallable } from "firebase/functions";
-import { functions } from '../App.jsx'; // <-- ADD THIS IMPORT
+import { firebaseConfig, app } from '../firebaseConfig'; // Added 'app' import
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 // --- API Call Logic ---
 export const callGeminiAPI = async (prompt, responseSchema) => {
@@ -13,7 +12,6 @@ export const callGeminiAPI = async (prompt, responseSchema) => {
     };
 
     const apiKey = firebaseConfig.apiKey; // Use the imported config
-    //const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${apiKey}`;
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     let response;
@@ -54,26 +52,56 @@ export const callGeminiAPI = async (prompt, responseSchema) => {
     }
 };
 
-//const generateImageFromFunction = httpsCallable(functions, 'generateImage');
+// --- Imagen Avatar Generation Call ---
+export const generateImageAPI = async (prompt) => {
+  try {
+    console.log("Calling Cloud Function 'generateAvatar'...");
+    
+    // Initialize Firebase Functions
+    const functions = getFunctions(app);
+    
+    // Reference the exact name of your deployed cloud function
+    const generateAvatar = httpsCallable(functions, 'generateAvatar'); 
+    
+    // Call the function with the prompt
+    const result = await generateAvatar({ prompt: prompt });
+    
+    if (!result.data || !result.data.image) {
+      throw new Error("No image data returned from function.");
+    }
 
-//export const generateImageAPI = async (prompt) => {
-  //try {
-    //console.log("Calling Cloud Function 'generateImage'...");
-    //const result = await generateImageFromFunction({ prompt: prompt });
+    console.log("Successfully received image from Cloud Function.");
+    
+    // Return the base64 string directly to the UI
+    return result.data.image; 
+    
+  } catch (error) {
+    console.error("Error calling generateAvatar Cloud Function:", error);
+    // Return null so the UI knows to fall back to the default avatar icon
+    return null; 
+  }
+};
 
-    // The data is wrapped in 'result.data'
-    //const base64Image = result.data.base64Image;
-
-    //if (!base64Image) {
-      //throw new Error("No image data returned from function.");
-    //}
-
-    //console.log("Successfully received image from Cloud Function.");
-    //return `data:image/png;base64,${base64Image}`;
-
-  //} catch (error) {
-    //console.error("Error calling generateImage Cloud Function:", error);
-    // This will pass the HttpsError message (e.g., "unauthenticated") to the UI
-    //throw new Error(`Function Error: ${error.message}`);
-  //}
-//};
+// --- Stripe Checkout Logic ---
+export const startStripeCheckout = async (priceId) => {
+  try {
+    console.log("Starting Stripe Checkout...");
+    
+    // Initialize Firebase Functions
+    const functions = getFunctions(app);
+    const createCheckoutSession = httpsCallable(functions, 'createCheckoutSession'); 
+    
+    // Call the backend function and pass the price ID
+    const result = await createCheckoutSession({ priceId: priceId });
+    
+    // If successful, Stripe sends back a secure URL. Redirect the user there!
+    if (result.data && result.data.url) {
+      window.location.href = result.data.url; 
+    } else {
+      throw new Error("No Stripe URL returned from the server.");
+    }
+  } catch (error) {
+    console.error("Error creating checkout session:", error);
+    alert("Unable to start checkout. Please check the console for details.");
+  }
+};

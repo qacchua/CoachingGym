@@ -1,94 +1,122 @@
 import React from 'react';
 import { MessageSquare, PieChart as PieChartIcon, CheckSquare, Edit, Lightbulb, HelpCircle } from 'lucide-react';
 
-const EvaluationReport = ({ result }) => {
-    const { foundationalCompetencies, evaluation, speakerAnalysis, keyInsights, alternativeQuestions, questionAnalysis } = result;
+const EvaluationReport = ({ result = {} }) => {
+    // Defensive Destructuring 
+    const { 
+        foundationalCompetencies = [], 
+        evaluation = [], 
+        speakerAnalysis = { clientPercentage: 0, coachPercentage: 0 }, 
+        keyInsights = [], 
+        alternativeQuestions = [], 
+        questionAnalysis = { openEnded: 0, leading: 0, clarifying: 0, observation: 0 } 
+    } = result;
 
+    // --- BROADER SEMANTIC COLOR MATCHING ---
     const getRatingColorClasses = (rating) => {
-        switch (rating) {
-            case 'Exemplary': return 'border-emerald-500 bg-emerald-50 text-emerald-800';
-            case 'Proficient': return 'border-lime-500 bg-lime-50 text-lime-800';
-            case 'Sufficient': return 'border-amber-500 bg-amber-50 text-amber-800';
-            case 'Needs Development': return 'border-rose-500 bg-rose-50 text-rose-800';
-            default: return 'border-slate-500 bg-slate-50 text-slate-800';
+        const normalized = String(rating || '').toLowerCase();
+        
+        // Green / Emerald
+        if (normalized.includes('exemplary') || normalized.includes('excellent') || normalized.includes('masterful') || normalized.includes('outstanding')) {
+            return 'border-emerald-500 bg-emerald-50/30 text-emerald-950';
+        } 
+        // Blue
+        else if (normalized.includes('proficient') || normalized.includes('good') || normalized.includes('strong') || normalized.includes('competent')) {
+            return 'border-blue-400 bg-blue-50/30 text-blue-950';
+        } 
+        // Yellow / Amber
+        else if (normalized.includes('sufficient') || normalized.includes('adequate') || normalized.includes('fair') || normalized.includes('average')) {
+            return 'border-amber-400 bg-amber-50/30 text-amber-950';
+        } 
+        // Red / Rose (Added 'developing' to catch the AI's output)
+        else if (normalized.includes('needs') || normalized.includes('developing') || normalized.includes('poor') || normalized.includes('inadequate')) {
+            return 'border-rose-600 bg-rose-50/30 text-rose-950';
         }
+        
+        // Default fallback
+        return 'border-slate-200 bg-slate-50 text-slate-700';
+    };
+
+    const getBadgeClasses = (rating) => {
+        const normalized = String(rating || '').toLowerCase();
+        
+        if (normalized.includes('exemplary') || normalized.includes('excellent') || normalized.includes('masterful') || normalized.includes('outstanding')) return 'bg-emerald-100 text-emerald-800';
+        if (normalized.includes('proficient') || normalized.includes('good') || normalized.includes('strong') || normalized.includes('competent')) return 'bg-blue-100 text-blue-800';
+        if (normalized.includes('sufficient') || normalized.includes('adequate') || normalized.includes('fair') || normalized.includes('average')) return 'bg-amber-100 text-amber-800';
+        if (normalized.includes('needs') || normalized.includes('developing') || normalized.includes('poor') || normalized.includes('inadequate')) return 'bg-rose-100 text-rose-800';
+        
+        return 'bg-slate-200 text-slate-700';
     };
 
     return (
         <div className="bg-white p-12 font-sans">
-            <header className="text-center border-b-2 border-slate-100 pb-6 mb-8">
-                <h1 className="text-3xl font-bold text-stone-800">Coaching Conversation Report</h1>
-                <p className="text-md text-slate-500 mt-2">AI-Powered Analysis. Not a formal evaluation.</p>
+            <header className="text-center border-b border-rose-50 pb-10 mb-12">
+                <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase mb-2">Performance Analysis</h1>
+                <p className="text-xs text-slate-400 font-bold tracking-widest uppercase">ICF Alignment Matrix</p>
             </header>
 
-            <section className="mb-10">
-                <h2 className="text-2xl font-bold text-slate-800 mb-4 border-b pb-2">Session Analysis</h2>
-                <div className="grid grid-cols-2 gap-8">
-                    <div>
-                        <h3 className="text-xl font-semibold text-slate-700 mb-3 flex items-center gap-2"><MessageSquare /> Talk Time</h3>
-                        <div className="space-y-3">
-                            <div>
-                                <div className="flex justify-between mb-1 text-sm"><span>Client</span><span>{speakerAnalysis.clientPercentage}%</span></div>
-                                <div className="w-full bg-slate-200 rounded-full h-2.5"><div className="bg-stone-600 h-2.5 rounded-full" style={{ width: `${speakerAnalysis.clientPercentage}%` }}></div></div>
-                            </div>
-                            <div>
-                                <div className="flex justify-between mb-1 text-sm"><span>Coach</span><span>{speakerAnalysis.coachPercentage}%</span></div>
-                                <div className="w-full bg-slate-200 rounded-full h-2.5"><div className="bg-stone-500 h-2.5 rounded-full" style={{ width: `${speakerAnalysis.coachPercentage}%` }}></div></div>
-                            </div>
+            {/* Metrics Section */}
+            <section className="mb-16 grid grid-cols-1 md:grid-cols-2 gap-16">
+                <div>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">Talk Time Ratio</h3>
+                    <div className="space-y-4">
+                        <div className="w-full bg-slate-50 rounded-full h-3 overflow-hidden flex">
+                            <div className="bg-slate-900 h-full transition-all duration-1000" style={{ width: `${speakerAnalysis.clientPercentage}%` }} />
+                            <div className="bg-rose-800 h-full transition-all duration-1000" style={{ width: `${speakerAnalysis.coachPercentage}%` }} />
+                        </div>
+                        <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter">
+                            <span className="text-slate-400">Client ({speakerAnalysis.clientPercentage}%)</span>
+                            <span className="text-rose-800">Coach ({speakerAnalysis.coachPercentage}%)</span>
                         </div>
                     </div>
-                    <div>
-                        <h3 className="text-xl font-semibold text-slate-700 mb-3 flex items-center gap-2"><PieChartIcon /> Question Analysis</h3>
-                        <ul className="space-y-1 text-sm">
-                            {Object.entries(questionAnalysis).map(([key, value]) => (
-                                <li key={key} className="flex justify-between">
-                                    <span className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-                                    <span className="font-semibold">{value}%</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-            </section>
-
-             <section className="mb-10">
-                <h2 className="text-2xl font-bold text-slate-800 mb-4 border-b pb-2">Foundational Competencies</h2>
-                <div className="space-y-4">
-                    {foundationalCompetencies.map((item, index) => (
-                        <div key={index} className="p-4 rounded-lg bg-slate-50">
-                            <h3 className="text-lg font-semibold flex items-center gap-2">{item.competency.includes("Ethical") ? <CheckSquare /> : <Edit />} {item.competency}</h3>
-                            <p className="text-sm mt-1">{item.assessmentNote}</p>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            <section className="mb-10">
-                <h2 className="text-2xl font-bold text-slate-800 mb-4 border-b pb-2">Core Competency Evaluation</h2>
-                <div className="space-y-4">
-                    {evaluation.map((item, index) => (
-                        <div key={index} className={`p-4 rounded-lg border-l-4 ${getRatingColorClasses(item.rating)}`}>
-                            <div className="flex justify-between items-center mb-1">
-                                <h3 className="text-lg font-bold">{item.competency}</h3>
-                                <span className={`font-semibold px-2 py-0.5 rounded-full text-xs ${getRatingColorClasses(item.rating)}`}>{item.rating}</span>
-                            </div>
-                            <p className="text-sm">{item.justification}</p>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            <section className="grid grid-cols-2 gap-8">
-                 <div>
-                    <h2 className="text-xl font-semibold text-slate-800 mb-3 flex items-center gap-2"><Lightbulb /> Key Client Insights</h2>
-                    <ul className="list-disc list-inside space-y-2 text-sm">
-                        {keyInsights.map((insight, index) => <li key={index}>{insight}</li>)}
-                    </ul>
                 </div>
                 <div>
-                    <h2 className="text-xl font-semibold text-slate-800 mb-3 flex items-center gap-2"><HelpCircle /> Alternative Questions</h2>
-                    <ul className="list-disc list-inside space-y-2 text-sm">
-                        {alternativeQuestions.map((q, index) => <li key={index}>"{q}"</li>)}
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Question Categories</h3>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                        {Object.entries(questionAnalysis).map(([key, val]) => (
+                            <div key={key} className="flex justify-between border-b border-rose-50 py-1.5 text-[10px] font-bold uppercase text-slate-500">
+                                <span>{key.replace(/([A-Z])/g, ' $1')}</span>
+                                <span className="text-slate-900">{val}%</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Competencies Section with Robust Color Coding */}
+            <section className="mb-16">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8">Competency Assessment</h3>
+                <div className="space-y-4">
+                    {evaluation.length > 0 ? evaluation.map((item, i) => (
+                        <div key={i} className={`p-6 rounded-[1.5rem] border-l-4 shadow-sm transition-all ${getRatingColorClasses(item.rating)}`}>
+                            <div className="flex justify-between items-center mb-3">
+                                <h4 className="font-black text-sm uppercase tracking-tight">{item.competency}</h4>
+                                <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${getBadgeClasses(item.rating)}`}>
+                                    {item.rating}
+                                </span>
+                            </div>
+                            <p className="text-xs leading-relaxed opacity-90 font-medium">{item.justification}</p>
+                        </div>
+                    )) : <p className="text-slate-400 text-xs italic">Awaiting analysis data...</p>}
+                </div>
+            </section>
+
+            {/* Insights Section */}
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
+                 <div className="bg-slate-50 p-8 rounded-[2rem]">
+                    <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-4 flex items-center gap-2">
+                        <Lightbulb size={14}/> Key Insights
+                    </h2>
+                    <ul className="space-y-3">
+                        {keyInsights.map((insight, index) => <li key={index} className="text-xs text-slate-600 font-medium leading-relaxed">• {insight}</li>)}
+                    </ul>
+                </div>
+                <div className="bg-rose-50/30 p-8 rounded-[2rem] border border-rose-100">
+                    <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-4 flex items-center gap-2">
+                        <HelpCircle size={14}/> Powerful Inquiries
+                    </h2>
+                    <ul className="space-y-3">
+                        {alternativeQuestions.map((q, index) => <li key={index} className="text-xs text-rose-900 italic font-medium leading-relaxed">"{q}"</li>)}
                     </ul>
                 </div>
             </section>

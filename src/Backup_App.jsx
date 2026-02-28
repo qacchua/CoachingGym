@@ -1443,7 +1443,7 @@ const EvaluationReport = ({ result, setView }) => {
 
     const getRatingColorClasses = (rating) => {
         switch (rating) {
-            case 'Exemplary': return 'border-emerald-500 bg-emerald-50 text-emerald-800';
+            case 'Exemplary': return 'border-emerald-500 bg-indigo-50 text-emerald-800';
             case 'Proficient': return 'border-lime-500 bg-lime-50 text-lime-800';
             case 'Sufficient': return 'border-amber-500 bg-amber-50 text-amber-800';
             case 'Needs Development': return 'border-rose-500 bg-rose-50 text-rose-800';
@@ -1837,7 +1837,7 @@ const QuizComponent = ({ setView, currentUser }) => {
                         const isSelected = userAnswers[currentQuestionIndex] === option;
                         
                         if(isCorrect) {
-                            buttonClass = 'bg-emerald-100 border-emerald-500';
+                            buttonClass = 'bg-indigo-100 border-emerald-500';
                         } else if (isSelected && selectionStatus === 'incorrect') {
                             buttonClass = 'bg-rose-100 border-rose-500';
                         } else {

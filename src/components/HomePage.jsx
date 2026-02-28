@@ -1,205 +1,118 @@
 import React from 'react';
 import { 
-  Bot, 
-  FileText, 
-  BookOpenCheck, 
-  ShieldCheck, 
-  Mic, 
-  Users, 
-  Lock, 
-  Crown, 
-  ArrowRight, 
-  Play 
+  Mic, MessageSquare, FileText, Trophy, ArrowRight, 
+  Zap, Target, Users, ShieldAlert, MessagesSquare 
 } from 'lucide-react';
 import Card from './Card';
 import Button from './Button';
-import IconWrapper from './IconWrapper';
-import myLogo from '../assets/SiteLogo.png';
 
 const HomePage = ({ setView, currentUser, isPremium }) => {
-
-  // 1. Define your features data here to make the rendering logic cleaner
+  
   const features = [
     {
       id: 'quiz',
-      title: 'ICF Competency Quiz',
-      description: 'Updated to reflect the new 2025 ICF Core Competencies',
-      icon: BookOpenCheck,
-      view: 'quiz',
-      isPremium: false, // Free
+      title: 'ICF Core Competency Quiz',
+      desc: 'Test your mastery of the 8 Core Competencies.',
+      icon: <Trophy className="w-6 h-6 text-amber-600" />,
+      premium: false,
+      color: 'bg-amber-50'
     },
     {
       id: 'simulation',
-      title: 'Simulate a Coaching Session (Text)',
-      description: 'Engage in a text-based session with an AI client.',
-      icon: Bot,
-      view: 'simulation',
-      isPremium: true, // Premium
-    },
-    {
-      id: 'voiceSimulation',
-      title: 'Simulate a Coaching Session (Voice)',
-      description: 'Practice by speaking with an AI client and hearing responses (BETA).',
-      icon: Mic,
-      view: 'voiceSimulation',
-      isPremium: true, // Premium
+      title: 'Text Simulation',
+      desc: 'Practice coaching via text with instant AI feedback.',
+      icon: <MessageSquare className="w-6 h-6 text-purple-600" />,
+      premium: false,
+      color: 'bg-purple-50'
     },
     {
       id: 'transcript',
-      title: 'Evaluate Past Sessions',
-      description: 'Upload a text transcript for a detailed analysis.',
-      icon: FileText,
-      view: 'transcript',
-      isPremium: true, // Premium
+      title: 'Transcript Evaluator',
+      desc: 'Upload real session text for ICF-aligned feedback.',
+      icon: <FileText className="w-6 h-6 text-blue-600" />,
+      premium: true,
+      color: 'bg-blue-50'
     },
     {
       id: 'dilemma',
-      title: 'Ethical Dilemma Simulator',
-      description: 'Navigate tricky ethical scenarios with AI mentor feedback.',
-      icon: ShieldCheck,
-      view: 'dilemma',
-      isPremium: true, // Premium
+      title: 'Ethical Dilemma',
+      desc: 'Navigate complex ICF ethical scenarios.',
+      icon: <ShieldAlert className="w-6 h-6 text-rose-600" />,
+      premium: true,
+      color: 'bg-rose-50'
     },
     {
-      id: 'chat',
-      title: 'The Clubhouse',
-      description: 'Ask questions, share insights, and connect with other coaches.',
-      icon: Users,
-      view: 'chat',
-      isPremium: false, // Free
+      id: 'voiceSimulation',
+      title: 'Voice Simulation',
+      desc: 'Immersive video-call simulation with AI clients.',
+      icon: <Mic className="w-6 h-6 text-emerald-600" />,
+      premium: true,
+      color: 'bg-indigo-50'
+    },    
+    {
+      id: 'community',
+      title: 'Community Chat',
+      desc: 'Connect and share insights with fellow coaches.',
+      icon: <MessagesSquare className="w-6 h-6 text-indigo-600" />,
+      premium: false,
+      color: 'bg-indigo-50'
     }
   ];
 
   return (
-    <>
-      {/* --- HEADER SECTION --- */}
-      <div className="max-w-6xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p className="text-slate-600">
-          Signed in as: <span className="font-semibold">{currentUser?.email || 'Guest'}</span>
-        </p>
-        
-        <div className="flex flex-wrap justify-center gap-3">
-          {/* Upgrade Button (Visible only if NOT premium) */}
-          {!isPremium && (
-            <Button 
-              onClick={() => setView('pricing')}
-              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-sm"
-            >
-              <Crown className="w-4 h-4 mr-2" /> Upgrade
-            </Button>
-          )}
+    <div className="max-w-6xl mx-auto space-y-10 pb-20">
+     {/* --- HERO SECTION --- */}
+<section className="relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-100 p-8 md:p-12 shadow-xl shadow-slate-200/50">
+  <div className="relative z-10 max-w-3xl"> {/* Increased max-width to allow more horizontal room */}
+    <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-6">
+      <Zap className="w-3.5 h-3.5 fill-current" /> 
+      {isPremium ? 'Premium Access Active' : '7-Day Free Trial'}
+    </div>
+    
+    <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight mb-4 leading-tight">
+      Welcome back, <span className="text-rose-800 whitespace-nowrap">{currentUser?.displayName || 'Coach'}</span>
+    </h1>
+    
+    <p className="text-base md:text-lg text-slate-500 font-medium leading-relaxed mb-8 max-w-xl">
+      The Gym is ready. Are you?
+    </p>
+    
+    <div className="flex flex-wrap gap-4">
+      <Button 
+        onClick={() => setView('voiceSimulation')} 
+        className="py-4 px-8 text-lg bg-rose-800 hover:bg-rose-900 shadow-xl shadow-rose-100 flex items-center gap-2"
+      >
+        Start Simulation <ArrowRight className="w-5 h-5" />
+      </Button>
+    </div>
+  </div>
+</section>
 
-          <Button onClick={() => setView('profile')} variant="secondary">
-            My Account
-          </Button>
-          <Button onClick={() => setView('dashboard')} variant="secondary">
-            My Dashboard
-          </Button>
-          <Button onClick={() => setView('logout')} variant="secondary">
-            Sign Out
-          </Button>
-        </div>
-      </div>
-
-      <div className="text-center">
-        <img src={myLogo} alt="CoachQ Logo" className="w-24 h-24 mx-auto mb-4" />
-        <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4">The Coaching Gym</h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-8">
-          "Practice doesn't make Perfect. Perfect Practice makes Perfect." - Vince Lombardi
-        </p>
-
-        {/* --- UPGRADE BANNER (Only visible if NOT premium) --- */}
-        {!isPremium && (
-          <div className="max-w-4xl mx-auto mb-12 bg-gradient-to-r from-slate-900 to-indigo-900 rounded-xl p-6 text-white shadow-xl relative overflow-hidden text-left">
-            <div className="absolute -right-10 -top-10 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
-            
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex-1">
-                <h2 className="text-xl font-bold flex items-center gap-2 text-amber-400">
-                  <Crown className="w-5 h-5" />
-                  Unlock Professional Features
-                </h2>
-                <p className="text-indigo-100 mt-2">
-                  Get unlimited access to AI Transcript Analysis, Voice Simulations, and advanced analytics. 
-                </p>
-              </div>
-              <Button 
-                onClick={() => setView('pricing')}
-                className="bg-amber-400 text-indigo-950 hover:bg-amber-500 border-0 font-bold whitespace-nowrap"
-              >
-                View Plans <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+      {/* Re-populated Actions Grid */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {features.map((item) => (
+          <Card 
+            key={item.id} 
+            className="group hover:border-emerald-500 hover:shadow-2xl transition-all" 
+            onClick={() => setView(item.id)} // This will now work with updated Card.jsx!
+          >
+            <div className={`w-14 h-14 ${item.color} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+              {item.icon}
             </div>
-          </div>
-        )}
-
-        {/* --- DYNAMIC FEATURES GRID --- */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {features.map((feature) => {
-            const isLocked = feature.isPremium && !isPremium;
-            const Icon = feature.icon;
-
-            return (
-              <Card 
-                key={feature.id} 
-                className={`flex flex-col h-full text-center transition-all duration-300 ${
-                  isLocked ? 'bg-slate-50 border-slate-200' : 'hover:shadow-2xl hover:-translate-y-2'
-                }`}
-              >
-                <div className="flex-grow flex flex-col items-center">
-                  <div className="relative">
-                    <IconWrapper>
-                      <Icon className={`w-8 h-8 ${isLocked ? 'text-slate-400' : ''}`} />
-                    </IconWrapper>
-                    {isLocked && (
-                      <div className="absolute -top-2 -right-2 bg-slate-200 rounded-full p-1 border border-white shadow-sm">
-                        <Lock className="w-3 h-3 text-slate-500" />
-                      </div>
-                    )}
-                  </div>
-
-                  <h2 className={`text-2xl font-bold mt-4 mb-2 ${isLocked ? 'text-slate-500' : 'text-slate-800'}`}>
-                    {feature.title}
-                  </h2>
-                  <p className={`mb-6 ${isLocked ? 'text-slate-400' : 'text-slate-600'}`}>
-                    {feature.description}
-                  </p>
-                </div>
-
-                {/* Button Logic */}
-                <div className="mt-4">
-                  {isLocked ? (
-                    <div className="flex gap-2 justify-center">
-                      <Button 
-                        disabled 
-                        className="bg-slate-200 text-slate-400 cursor-not-allowed border-slate-200 w-full"
-                      >
-                        <Lock className="w-4 h-4 mr-2" /> Locked
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button onClick={() => setView(feature.view)} className="w-full">
-                       {feature.view === 'quiz' ? 'Start Quiz' : 
-                        feature.view === 'chat' ? 'Enter Chat' : 'Start Simulation'}
-                    </Button>
-                  )}
-                  
-                  {/* Optional "Quick Unlock" text/button for locked items */}
-                  {isLocked && (
-                     <button 
-                       onClick={() => setView('pricing')}
-                       className="text-xs text-amber-600 font-semibold mt-2 hover:underline"
-                     >
-                       Upgrade to unlock
-                     </button>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+              {item.title}
+              {item.premium && !isPremium && <Zap className="w-3.5 h-3.5 text-slate-300" />}
+            </h3>
+            <p className="text-slate-500 text-sm leading-relaxed mb-6">
+              {item.desc}
+            </p>
+            <div className="flex items-center text-emerald-600 font-black text-xs uppercase tracking-widest group-hover:gap-3 transition-all">
+              Launch <ArrowRight className="w-4 h-4 ml-2" />
+            </div>
+          </Card>
+        ))}
       </div>
-    </>
+    </div>
   );
 };
 
