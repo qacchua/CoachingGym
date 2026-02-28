@@ -1,10 +1,11 @@
 // src/components/EthicalDilemmaSimulator.jsx
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Loader2, CheckSquare, Lightbulb, Sparkles } from 'lucide-react';
+import { Loader2, CheckSquare, Lightbulb, Sparkles, ArrowLeft, Scale } from 'lucide-react';
 import Card from './Card';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
+import IconWrapper from './IconWrapper';
 import { callGeminiAPI } from '../utils/api';
 // Import all the firestore functions you'll need
 import { 
@@ -299,100 +300,139 @@ const EthicalDilemmaSimulator = ({ setView, currentUser }) => {
 
 
   return (
-    <Card className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-start mb-4">
-        <h1 className="text-3xl font-bold text-slate-800">Ethical Dilemma Simulator</h1>
-        <Button onClick={() => setView('home')} variant="secondary" className="px-4 py-2 text-sm">&larr; Back</Button>
+    <Card className="max-w-4xl mx-auto border-rose-100 shadow-xl fade-in">
+      
+      <div className="flex justify-between items-start mb-8 border-b border-rose-50 pb-6">
+        <div className="flex items-center gap-4">
+            <IconWrapper><Scale className="w-8 h-8 text-rose-800" /></IconWrapper>
+            <div>
+                <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Ethical Dilemmas</h1>
+                <p className="text-rose-800 text-[10px] font-bold uppercase tracking-widest mt-1">ICF Boundary Practice</p>
+            </div>
+        </div>
+        <Button onClick={() => setView('home')} variant="secondary" className="border-rose-100 text-rose-800 font-bold uppercase tracking-widest text-[10px]">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back
+        </Button>
       </div>
 
       {flowStep === 'select' && (
             <>
-              <div className="my-6 border-b pb-6">
-                <p className="block text-lg font-semibold text-slate-700 mb-3">1. Choose dilemma format</p>
-                <div className="flex gap-6">
-                  <label className="flex items-center cursor-pointer">
-                    <input type="radio" name="dilemmaMode" value="random" checked={dilemmaMode === 'random'} onChange={() => setDilemmaMode('random')} className="h-4 w-4 text-stone-600" />
-                    <span className="ml-2">Use a Random Dilemma</span>
+              <div className="my-8 pb-8">
+                <p className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-6">Step 1: Choose dilemma format</p>
+                <div className="flex flex-col sm:flex-row gap-6">
+                  <label className="flex-1 flex items-center p-4 border border-rose-100 rounded-2xl cursor-pointer hover:bg-rose-50 transition-colors">
+                    <input type="radio" name="dilemmaMode" value="random" checked={dilemmaMode === 'random'} onChange={() => setDilemmaMode('random')} className="h-4 w-4 text-rose-800 focus:ring-rose-800" />
+                    <span className="ml-3 font-bold text-sm text-slate-700 uppercase tracking-widest">Random Scenario</span>
                   </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input type="radio" name="dilemmaMode" value="custom" checked={dilemmaMode === 'custom'} onChange={() => setDilemmaMode('custom')} className="h-4 w-4 text-stone-600" />
-                    <span className="ml-2">Enter Your Own Dilemma</span>
+                  <label className="flex-1 flex items-center p-4 border border-rose-100 rounded-2xl cursor-pointer hover:bg-rose-50 transition-colors">
+                    <input type="radio" name="dilemmaMode" value="custom" checked={dilemmaMode === 'custom'} onChange={() => setDilemmaMode('custom')} className="h-4 w-4 text-rose-800 focus:ring-rose-800" />
+                    <span className="ml-3 font-bold text-sm text-slate-700 uppercase tracking-widest">Enter Your Own</span>
                   </label>
                 </div>
               </div>
+
                 {dilemmaMode === 'random' && currentDilemma && (
-                    <div className="p-4 bg-slate-50 rounded-lg">
-                        <h2 className="font-bold text-lg">{currentDilemma?.title}</h2>
-                        <p className="mt-2">{currentDilemma?.scenario}</p>
+                    <div className="p-8 bg-rose-50/50 rounded-3xl border border-rose-100 mb-8">
+                        <h2 className="font-black text-xl text-slate-800 uppercase tracking-tight">{currentDilemma?.title}</h2>
+                        <p className="mt-4 text-slate-600 leading-relaxed font-medium">{currentDilemma?.scenario}</p>
                     </div>
                 )}
+                
                 {dilemmaMode === 'custom' && (
-                    <div>
-                        <label htmlFor="custom-dilemma" className="block text-lg font-semibold text-slate-700 mb-2">Describe your dilemma:</label>
-                        <textarea id="custom-dilemma" value={customDilemma} onChange={(e) => setCustomDilemma(e.target.value)} className="w-full h-32 p-4 border rounded-lg"/>
+                    <div className="mb-8">
+                        <label htmlFor="custom-dilemma" className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Describe your dilemma:</label>
+                        <textarea id="custom-dilemma" value={customDilemma} onChange={(e) => setCustomDilemma(e.target.value)} className="w-full h-40 p-6 border border-rose-100 rounded-3xl bg-slate-50 focus:ring-2 focus:ring-rose-800 outline-none resize-none font-medium text-slate-700" placeholder="A client recently told me..." />
                     </div>
                 )}
-                <div className="mt-6 flex justify-end gap-4">
-                    {dilemmaMode === 'random' && <Button onClick={loadRandomDilemma} variant="secondary">New Random Dilemma</Button>}
-                    <Button onClick={handleDilemmaSubmit} disabled={isLoading}>
-                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Proceed to Solution"}
+                
+                <div className="flex justify-end gap-4 border-t border-rose-50 pt-8">
+                    {dilemmaMode === 'random' && (
+                        <Button onClick={loadRandomDilemma} variant="secondary" className="border-rose-200 text-rose-800 font-bold uppercase tracking-widest text-xs px-8 py-4 hover:bg-rose-50">
+                            Skip / Next
+                        </Button>
+                    )}
+                    <Button onClick={handleDilemmaSubmit} disabled={isLoading} className="bg-rose-800 hover:bg-rose-900 text-white font-black uppercase tracking-widest text-xs px-8 py-4 shadow-xl shadow-rose-200 transition-all">
+                        {isLoading ? <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Preparing...</span> : "Proceed to Solution"}
                     </Button>
                 </div>
             </>
         )}
 
         {flowStep === 'respond' && currentDilemma && (
-            <>
-                <div className="p-4 bg-slate-50 rounded-lg mb-6">
-                    <h2 className="font-bold text-lg">The Dilemma: ({currentDilemma.title})</h2>
-                    <p className="italic mt-2">"{currentDilemma.scenario}"</p>
+            <div className="fade-in">
+                <div className="p-8 bg-rose-50/50 rounded-3xl border border-rose-100 mb-8">
+                    <h2 className="font-black text-xs text-rose-800 uppercase tracking-widest mb-2">Scenario</h2>
+                    <h3 className="font-black text-xl text-slate-800 uppercase tracking-tight mb-4">{currentDilemma.title}</h3>
+                    <p className="text-slate-600 leading-relaxed font-medium italic">"{currentDilemma.scenario}"</p>
                 </div>
-                <div>
-                    <label htmlFor="user-response" className="block text-lg font-semibold text-slate-700 mb-2">How would you handle this?</label>
-                    <textarea id="user-response" value={userResponse} onChange={(e) => setUserResponse(e.target.value)} className="w-full h-48 p-4 border rounded-lg"/>
+                
+                <div className="mb-8">
+                    <label htmlFor="user-response" className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-4">How would you handle this ethically?</label>
+                    <textarea id="user-response" value={userResponse} onChange={(e) => setUserResponse(e.target.value)} className="w-full h-56 p-6 border border-rose-100 rounded-3xl bg-slate-50 focus:ring-2 focus:ring-rose-800 outline-none resize-none font-medium text-slate-700 shadow-inner" placeholder="I would start by..." />
                 </div>
-                <div className="mt-6 flex justify-end">
-                    <Button onClick={handleSolutionSubmit} disabled={isLoading}>
-                         {isLoading ? <><Loader2 className="w-5 h-5 animate-spin" /> Submitting...</> : "Submit for Feedback"}
+                
+                <div className="flex justify-end border-t border-rose-50 pt-8">
+                    <Button onClick={handleSolutionSubmit} disabled={isLoading} className="bg-rose-800 hover:bg-rose-900 text-white font-black uppercase tracking-widest text-xs px-8 py-4 shadow-xl shadow-rose-200 transition-all w-full md:w-auto">
+                         {isLoading ? <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</span> : "Submit for Feedback"}
                     </Button>
                 </div>
-            </>
+            </div>
         )}
 
-      {isLoading && flowStep !== 'respond' && <LoadingSpinner text="Analyzing your response..." />}
+      {isLoading && flowStep !== 'respond' && <LoadingSpinner text="Consulting the ethics board..." />}
 
       {flowStep === 'feedback' && feedback && currentDilemma && (
-         <div>
-            <div className="p-4 bg-slate-100 rounded-lg mb-6">
-                 <h2 className="font-bold text-lg">The Dilemma: ({currentDilemma.title})</h2>
-                <p className="italic mt-2">"{currentDilemma.scenario}"</p>
+         <div className="fade-in">
+            <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 mb-6 shadow-sm">
+                 <h2 className="font-black text-xs text-slate-400 uppercase tracking-widest mb-2">Scenario: {currentDilemma.title}</h2>
+                 <p className="text-slate-600 font-medium italic">"{currentDilemma.scenario}"</p>
             </div>
-            <div className="p-4 bg-stone-50 rounded-lg mb-6">
-                <h2 className="font-bold text-lg">Your Response:</h2>
-                <p className="italic mt-2">"{userResponse}"</p>
+            
+            <div className="p-8 bg-rose-50/50 rounded-3xl border border-rose-100 mb-10 shadow-sm relative">
+                <div className="absolute top-0 right-0 bg-rose-800 text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-xl rounded-tr-3xl shadow-sm">
+                    Your Solution
+                </div>
+                <h2 className="font-black text-xs text-rose-800 uppercase tracking-widest mb-4">Response Provided</h2>
+                <p className="text-slate-700 font-medium leading-relaxed">"{userResponse}"</p>
             </div>
-            <h2 className="text-2xl font-bold mb-4 border-b pb-2">Mentor Coach Feedback</h2>
-            <div className="space-y-6">
-                <div>
-                    <h3 className="text-lg font-semibold text-emerald-700 flex items-center gap-2"><CheckSquare /> Strengths</h3>
-                    <p className="mt-1">{feedback.strengths}</p>
+            
+            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-8 border-b border-rose-50 pb-4">Mentor Coach Feedback</h2>
+            
+            <div className="space-y-8 mb-10">
+                <div className="p-6 border border-emerald-100 bg-emerald-50/30 rounded-[2rem] shadow-sm">
+                    <h3 className="text-sm font-black text-emerald-800 uppercase tracking-widest flex items-center gap-3 mb-3">
+                        <CheckSquare className="w-5 h-5" /> Strengths
+                    </h3>
+                    <p className="text-slate-700 font-medium leading-relaxed">{feedback.strengths}</p>
                 </div>
-                <div>
-                    <h3 className="text-lg font-semibold text-amber-700 flex items-center gap-2"><Lightbulb /> Potential Pitfalls</h3>
-                    <p className="mt-1">{feedback.pitfalls}</p>
+                
+                <div className="p-6 border border-amber-100 bg-amber-50/30 rounded-[2rem] shadow-sm">
+                    <h3 className="text-sm font-black text-amber-800 uppercase tracking-widest flex items-center gap-3 mb-3">
+                        <Lightbulb className="w-5 h-5" /> Potential Pitfalls
+                    </h3>
+                    <p className="text-slate-700 font-medium leading-relaxed">{feedback.pitfalls}</p>
                 </div>
-                <div>
-                    <h3 className="text-lg font-semibold text-sky-700 flex items-center gap-2"><Sparkles /> Alternative Approaches</h3>
-                    <p className="mt-1">{feedback.alternatives}</p>
+                
+                <div className="p-6 border border-sky-100 bg-sky-50/30 rounded-[2rem] shadow-sm">
+                    <h3 className="text-sm font-black text-sky-800 uppercase tracking-widest flex items-center gap-3 mb-3">
+                        <Sparkles className="w-5 h-5" /> Alternative Approaches
+                    </h3>
+                    <p className="text-slate-700 font-medium leading-relaxed">{feedback.alternatives}</p>
                 </div>
             </div>
-             <div className="mt-8 flex justify-end">
-                <Button onClick={() => {
-                  setFeedback(null);
-                  setUserResponse('');
-                  setFlowStep('select');
-                  if(dilemmaMode === 'random') loadRandomDilemma();
-                }}>Try Another Dilemma</Button>
+            
+             <div className="flex justify-end border-t border-rose-50 pt-8">
+                <Button 
+                    onClick={() => {
+                        setFeedback(null);
+                        setUserResponse('');
+                        setFlowStep('select');
+                        if(dilemmaMode === 'random') loadRandomDilemma();
+                    }}
+                    className="bg-slate-900 text-white font-black uppercase tracking-widest text-xs px-8 py-4 hover:bg-slate-800 shadow-lg w-full md:w-auto"
+                >
+                    Try Another Dilemma
+                </Button>
             </div>
          </div>
       )}

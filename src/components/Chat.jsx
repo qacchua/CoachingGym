@@ -3,8 +3,7 @@ import { collection, query, onSnapshot, orderBy, addDoc, serverTimestamp } from 
 import { db } from '../firebaseConfig.js';
 import Card from './Card';
 import Button from './Button';
-// --- 1. Import Plus icon ---
-import { Send, Hash, Plus } from 'lucide-react';
+import { Send, Hash, Plus, ArrowLeft } from 'lucide-react';
 
 const Chat = ({ setView, currentUser }) => {
   const [channels, setChannels] = useState([]);
@@ -99,63 +98,64 @@ const Chat = ({ setView, currentUser }) => {
   };
 
   return (
-    <Card className="max-w-6xl mx-auto h-[85vh] flex">
+    <Card className="max-w-6xl mx-auto h-[85vh] flex border-rose-100 shadow-xl fade-in p-6 md:p-8">
       {/* Sidebar for Channels */}
-      <div className="w-1/4 border-r pr-6 flex flex-col">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Channels</h2>
-          <Button onClick={() => setView('home')} variant="secondary" className="px-3 py-1 text-sm">&larr; Back</Button>
+      <div className="w-1/4 border-r border-rose-50 pr-6 flex flex-col">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Channels</h2>
+          <Button onClick={() => setView('home')} variant="secondary" className="p-2 border-rose-100 text-rose-800 hover:bg-rose-50">
+             <ArrowLeft size={16}/>
+          </Button>
         </div>
-        <div className="flex-grow space-y-2 overflow-y-auto">
+        <div className="flex-grow space-y-2 overflow-y-auto custom-scrollbar pr-2">
           {channels.map(channel => (
             <button
               key={channel.id}
               onClick={() => setSelectedChannel(channel.id)}
-              className={`w-full text-left px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+              className={`w-full text-left px-4 py-3 rounded-2xl flex items-center gap-3 transition-all font-bold text-xs uppercase tracking-widest ${
                 selectedChannel === channel.id 
-                  ? 'bg-stone-700 text-white' 
-                  : 'text-slate-600 hover:bg-slate-100'
+                  ? 'bg-rose-800 text-white shadow-md' 
+                  : 'text-slate-500 hover:bg-rose-50 hover:text-rose-800'
               }`}
             >
-              <Hash className="w-4 h-4" /> {channel.name}
+              <Hash className="w-4 h-4 opacity-70" /> {channel.name}
             </button>
           ))}
         </div>
         
         {/* --- 3. NEW BUTTON ADDED --- */}
-        <Button onClick={handleCreateChannel} variant="secondary" className="w-full mt-4 flex items-center justify-center gap-2">
-          <Plus className="w-5 h-5" /> New Channel
+        <Button onClick={handleCreateChannel} variant="secondary" className="w-full mt-6 flex items-center justify-center gap-2 border-rose-200 text-rose-800 font-black uppercase tracking-widest text-xs py-4 hover:bg-rose-50 transition-colors">
+          <Plus className="w-4 h-4" /> New Channel
         </Button>
       </div>
 
       {/* Main Chat Area */}
       <div className="w-3/4 flex flex-col pl-6">
         {messages.length === 0 && selectedChannel ? (
-            <div className="flex-grow flex flex-col items-center justify-center text-slate-500">
-                <Hash className="w-16 h-16" />
-                <h3 className="text-xl font-bold mt-4">Welcome to #{channels.find(c => c.id === selectedChannel)?.name}</h3>
-                <p>Be the first to say something!</p>
+            <div className="flex-grow flex flex-col items-center justify-center text-slate-400 fade-in">
+                <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mb-4">
+                    <Hash className="w-10 h-10 text-rose-800" />
+                </div>
+                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight mt-2">Welcome to #{channels.find(c => c.id === selectedChannel)?.name}</h3>
+                <p className="text-sm font-medium mt-2">Be the first to say something!</p>
             </div>
         ) : (
-            <div className="flex-grow overflow-y-auto mb-4 space-y-4 pr-4 -mr-4">
+            <div className="flex-grow overflow-y-auto mb-4 space-y-6 pr-4 -mr-4 custom-scrollbar">
             {messages.map(msg => (
                 <div key={msg.id} className={`flex ${msg.userId === currentUser.uid ? 'justify-end' : ''}`}>
-                <div className={`p-3 rounded-lg max-w-lg ${
+                <div className={`p-4 rounded-2xl max-w-lg text-sm leading-relaxed ${
                     msg.userId === currentUser.uid 
-                    ? 'bg-stone-700 text-white' 
-                    : 'bg-slate-100 text-slate-800'
+                    ? 'bg-rose-800 text-white rounded-br-none shadow-md' 
+                    : 'bg-slate-50 border border-slate-100 text-slate-700 rounded-bl-none shadow-sm'
                 }`}>
                     <button 
-                    className="text-xs font-bold opacity-70 mb-1 text-left"
+                    className={`text-[10px] font-black uppercase tracking-widest mb-1.5 block text-left transition-opacity ${msg.userId === currentUser.uid ? 'text-rose-200 hover:text-white' : 'text-slate-400 hover:text-rose-800'}`}
                     onClick={() => setView('publicProfile', { userId: msg.userId })}
                     disabled={msg.userId === currentUser.uid}
-                    style={{ textDecoration: msg.userId !== currentUser.uid ? 'none' : 'none' }}
-                    onMouseEnter={e => { if (msg.userId !== currentUser.uid) e.currentTarget.style.textDecoration = 'underline' }}
-                    onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
                     >
                     {msg.displayName || msg.userEmail}
                     </button>
-                    <p>{msg.text}</p>
+                    <p className="font-medium">{msg.text}</p>
                 </div>
                 </div>
             ))}
@@ -164,16 +164,20 @@ const Chat = ({ setView, currentUser }) => {
         )}
 
         {/* Message Input Form */}
-        <form onSubmit={handleSendMessage} className="flex gap-4">
+        <form onSubmit={handleSendMessage} className="flex gap-3 mt-4 pt-6 border-t border-rose-50">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder={selectedChannel ? `Message #${channels.find(c => c.id === selectedChannel)?.name}...` : "Select a channel to start"}
-            className="flex-grow p-3 border rounded-lg"
+            className="flex-grow p-4 border border-rose-100 rounded-2xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-rose-800 outline-none transition-all font-medium text-slate-800 placeholder:text-slate-400"
             disabled={!selectedChannel}
           />
-          <Button type="submit" disabled={!selectedChannel}>
+          <Button 
+            type="submit" 
+            disabled={!selectedChannel || !newMessage.trim()}
+            className="bg-rose-800 hover:bg-rose-900 text-white p-4 rounded-2xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Send className="w-5 h-5" />
           </Button>
         </form>

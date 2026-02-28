@@ -294,12 +294,12 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
     // --- HELPERS FOR LOCKED BUTTONS ---
     const PremiumButton = ({ onClick, children, variant = "primary" }) => {
         if (isPremium) {
-            return <Button onClick={onClick} variant={variant}>{children}</Button>;
+            return <Button onClick={onClick} variant={variant} className={variant === 'primary' ? 'bg-rose-800 hover:bg-rose-900 text-white font-black uppercase tracking-widest text-xs' : 'border-rose-200 text-rose-800 font-bold uppercase tracking-widest text-xs hover:bg-rose-50'}>{children}</Button>;
         }
         // Locked State
         return (
-            <Button disabled className="bg-slate-200 text-slate-400 cursor-not-allowed border-slate-200 flex items-center justify-center gap-2">
-                <Lock className="w-4 h-4" /> {children} <span className="text-xs uppercase font-bold tracking-wider">(Premium)</span>
+            <Button disabled className="bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200 flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-[10px]">
+                <Lock className="w-3 h-3" /> {children} <span className="text-[8px] opacity-70">(Premium)</span>
             </Button>
         );
     };
@@ -308,12 +308,12 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
 
     if (quizState === 'intro') {
         return (
-            <Card className="max-w-2xl mx-auto text-center">
-                <IconWrapper><BookOpenCheck className="w-10 h-10" /></IconWrapper>
-                <h1 className="text-3xl font-bold mt-4">ICF Competency Quiz</h1>
-                <p className="mt-4 mb-8">Match behaviors to ICF Core Competencies (Updated 2025).</p>
-                <div className="flex flex-col gap-4">
-                    <Button onClick={() => setQuizState('selectLength')}>
+            <Card className="max-w-2xl mx-auto text-center py-12 border-rose-100 shadow-xl fade-in">
+                <IconWrapper><BookOpenCheck className="w-10 h-10 text-rose-800" /></IconWrapper>
+                <h1 className="text-4xl font-black text-slate-900 mt-6 tracking-tighter uppercase">ICF Competency Quiz</h1>
+                <p className="mt-4 mb-10 text-slate-500 font-medium">Match behaviors to ICF Core Competencies (Updated 2025).</p>
+                <div className="flex flex-col gap-4 max-w-sm mx-auto">
+                    <Button onClick={() => setQuizState('selectLength')} className="bg-rose-800 text-white hover:bg-rose-900 font-black uppercase tracking-widest shadow-xl shadow-rose-200 py-4 text-xs">
                         General Competency Quiz
                     </Button>
                     
@@ -322,12 +322,12 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
                         Competency-Specific Quiz
                     </PremiumButton>
 
-                    <Button onClick={() => setView('home')} variant="secondary">
+                    <Button onClick={() => setView('home')} variant="secondary" className="border-rose-100 text-rose-800 font-bold uppercase tracking-widest text-xs hover:bg-rose-50 mt-4">
                         Back to Home
                     </Button>
                 </div>
                 {!isPremium && (
-                    <p className="text-xs text-slate-400 mt-4">
+                    <p className="text-[10px] text-slate-400 mt-6 font-bold uppercase tracking-widest">
                         Upgrade to Premium to unlock specific competency training.
                     </p>
                 )}
@@ -337,13 +337,13 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
 
      if (quizState === 'selectLength') {
         return (
-            <Card className="max-w-2xl mx-auto text-center">
-                <IconWrapper><BookOpenCheck className="w-10 h-10" /></IconWrapper>
-                <h1 className="text-3xl font-bold mt-4">General Quiz</h1>
-                <p className="mt-4 mb-8">How many questions would you like?</p>
-                <div className="flex flex-col gap-4">
+            <Card className="max-w-2xl mx-auto text-center py-12 border-rose-100 shadow-xl fade-in">
+                <IconWrapper><BookOpenCheck className="w-10 h-10 text-rose-800" /></IconWrapper>
+                <h1 className="text-4xl font-black text-slate-900 mt-6 tracking-tighter uppercase">General Quiz</h1>
+                <p className="mt-4 mb-10 text-slate-500 font-medium">How many questions would you like?</p>
+                <div className="flex flex-col gap-4 max-w-sm mx-auto">
                      {/* FULL QUIZ - AVAILABLE TO ALL */}
-                    <Button onClick={() => startQuiz(behaviorsData.length)} variant={isPremium ? "secondary" : "primary"}>
+                    <Button onClick={() => startQuiz(behaviorsData.length)} variant={isPremium ? "secondary" : "primary"} className={isPremium ? 'border-rose-200 text-rose-800 font-bold uppercase tracking-widest text-xs py-4 hover:bg-rose-50' : 'bg-rose-800 text-white hover:bg-rose-900 font-black uppercase tracking-widest shadow-xl py-4 text-xs'}>
                         All {behaviorsData.length} Questions (Full Challenge)
                     </Button>
                     
@@ -356,7 +356,7 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
                         40 Questions (Standard)
                     </PremiumButton>
                                    
-                    <Button onClick={() => setQuizState('intro')} variant="secondary">
+                    <Button onClick={() => setQuizState('intro')} variant="secondary" className="border-rose-100 text-rose-800 font-bold uppercase tracking-widest text-[10px] py-4 mt-4 hover:bg-rose-50">
                         Back
                     </Button>
                 </div>
@@ -366,22 +366,24 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
 
      if (quizState === 'selectCompetency') {
         return (
-            <Card className="max-w-2xl mx-auto">
-                <IconWrapper><BookOpenCheck className="w-10 h-10" /></IconWrapper>
-                <h1 className="text-3xl font-bold mt-4">Competency-Specific Quiz</h1>
-                <p className="mt-4 mb-8">Which competency would you like to practice?</p>
-                <div className="flex flex-col gap-3">
+            <Card className="max-w-2xl mx-auto py-12 border-rose-100 shadow-xl fade-in">
+                <div className="text-center mb-10">
+                    <IconWrapper><BookOpenCheck className="w-10 h-10 text-rose-800" /></IconWrapper>
+                    <h1 className="text-3xl font-black text-slate-900 mt-6 tracking-tighter uppercase">Competency Focus</h1>
+                    <p className="mt-2 text-slate-500 font-medium">Which competency would you like to practice?</p>
+                </div>
+                <div className="flex flex-col gap-3 max-w-md mx-auto">
                     {competencies.map(comp => (
                         <Button 
                             key={comp} 
                             onClick={() => startCompetencyQuiz(comp)} 
                             variant="secondary" 
-                            className="text-left justify-start"
+                            className="text-left justify-start border-rose-100 text-rose-900 font-bold hover:bg-rose-50 py-3 text-sm transition-all"
                         >
                             {comp}
                         </Button>
                     ))}
-                    <Button onClick={() => setQuizState('intro')} variant="secondary" className="mt-4">
+                    <Button onClick={() => setQuizState('intro')} variant="secondary" className="border-slate-200 text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-8 text-center justify-center py-4">
                         Back
                     </Button>
                 </div>
@@ -391,39 +393,54 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
 
     if (quizState === 'results') {
          return (
-            <div className="max-w-4xl mx-auto">
-                <Card>
-                    <div ref={resultsRef} className="p-8">
-                        <h1 className="text-3xl font-bold text-center mb-4">Quiz Results</h1>
-                        <p className="text-xl text-center mb-8">Score: <span className="font-bold">{score} / {questions.length}</span></p>
-                        <h2 className="text-2xl font-bold mb-4 border-b pb-2">Analysis by Competency</h2>
-                        <div className="space-y-4">
+            <div className="max-w-4xl mx-auto fade-in">
+                <Card className="border-rose-100 shadow-2xl">
+                    <div ref={resultsRef} className="p-8 md:p-12 bg-white">
+                        <div className="text-center mb-12 border-b border-rose-50 pb-8">
+                            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter mb-2">Quiz Results</h1>
+                            <p className="text-rose-800 font-black uppercase tracking-widest text-sm">Score: {score} / {questions.length}</p>
+                        </div>
+                        
+                        <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-8">Analysis by Competency</h2>
+                        <div className="space-y-6">
                             {Object.entries(competencyAnalysis).map(([competency, data]) => {
                                 if (data.total === 0) return null; 
                                 const percentage = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
-                                return ( <div key={competency}> <div className="flex justify-between items-center mb-1"> <span>{competency}</span> <span>{data.correct} / {data.total}</span> </div> <div className="w-full bg-slate-200 rounded-full h-4"> <div className="bg-stone-600 h-4 rounded-full text-xs text-white flex items-center justify-center" style={{ width: `${percentage}%` }}> {percentage > 10 ? `${percentage}%` : ''} </div> </div> </div> );
+                                return ( 
+                                    <div key={competency}> 
+                                        <div className="flex justify-between items-center mb-2"> 
+                                            <span className="text-xs font-bold text-slate-700 uppercase tracking-tight">{competency}</span> 
+                                            <span className="text-xs font-black text-rose-800">{data.correct} / {data.total}</span> 
+                                        </div> 
+                                        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner"> 
+                                            <div className="bg-rose-800 h-full text-[8px] font-black text-white flex items-center justify-center transition-all duration-1000" style={{ width: `${percentage}%` }}> 
+                                                {percentage > 10 ? `${percentage}%` : ''} 
+                                            </div> 
+                                        </div> 
+                                    </div> 
+                                );
                             })}
                         </div>
                     </div>
                      
-                     <div className="mt-8 flex flex-wrap justify-center gap-4">
-                        <Button onClick={() => setQuizState('intro')}>Back to Quiz Home</Button>
+                     <div className="mt-8 p-8 bg-rose-50/30 border-t border-rose-50 flex flex-wrap justify-center gap-4">
+                        <Button onClick={() => setQuizState('intro')} className="bg-slate-800 text-white font-black uppercase tracking-widest text-[10px] px-6 py-3">Take Another Quiz</Button>
                         
                         {/* Save to Dashboard Button */}
                         <Button 
                             onClick={handleSaveToDashboard} 
                             disabled={isSaving || saveStatus === 'success'}
-                            className={saveStatus === 'success' ? "bg-green-600 hover:bg-green-700 text-white" : "bg-stone-700 text-white"}
+                            className={saveStatus === 'success' ? "bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-[10px] px-6 py-3 shadow-md" : "bg-rose-800 hover:bg-rose-900 text-white font-black uppercase tracking-widest text-[10px] px-6 py-3 shadow-md"}
                         >
                             {isSaving ? 'Saving...' : saveStatus === 'success' ? 'Saved!' : (
                                 <>
-                                    <Save className="w-4 h-4 mr-2" /> Save to Dashboard
+                                    <Save className="w-3 h-3 mr-2" /> Save to Dashboard
                                 </>
                             )}
                         </Button>
 
-                        <Button onClick={handleDownloadPdf} variant="secondary">Download PDF</Button>
-                        <Button onClick={() => setView('home')} variant="secondary">Back to Hub</Button>
+                        <Button onClick={handleDownloadPdf} variant="secondary" className="border-rose-200 text-rose-800 font-bold uppercase tracking-widest text-[10px] px-6 py-3 hover:bg-rose-50">Download PDF</Button>
+                        <Button onClick={() => setView('home')} variant="secondary" className="border-slate-200 text-slate-500 font-bold uppercase tracking-widest text-[10px] px-6 py-3">Back to Hub</Button>
                     </div>
                 </Card>
             </div>
@@ -434,30 +451,30 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
     const completedQuestions = selectionStatus ? currentQuestionIndex + 1 : currentQuestionIndex;
     
     return (
-        <Card className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-2">
-                <p>Q {currentQuestionIndex + 1} of {questions.length}</p>
-                <p>Score: {score} / {completedQuestions}</p>
+        <Card className="max-w-4xl mx-auto border-rose-100 shadow-xl fade-in">
+            <div className="flex justify-between items-center mb-8 border-b border-rose-50 pb-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Question {currentQuestionIndex + 1} of {questions.length}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-rose-800">Score: {score} / {completedQuestions}</p>
             </div>
             
-            <p className="text-lg font-semibold mb-6" dangerouslySetInnerHTML={{ __html: currentQuestion.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+            <p className="text-xl font-medium leading-relaxed mb-8 text-slate-800" dangerouslySetInnerHTML={{ __html: currentQuestion.text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-rose-900 font-black">$1</strong>') }} />
 
             <div className="grid grid-cols-1 gap-4">
                 {currentQuestion.options.map((option, index) => {
-                    let buttonClass = 'bg-white hover:bg-stone-100';
+                    let buttonClass = 'bg-slate-50 border-slate-100 hover:border-rose-200 hover:bg-rose-50/50 text-slate-700';
                     if (selectionStatus) {
                         const isCorrect = option === currentQuestion.correctAnswer;
                         const isSelected = userAnswers[currentQuestionIndex] === option;
-                        if(isCorrect) buttonClass = 'bg-indigo-100 border-emerald-500';
-                        else if (isSelected && !isCorrect) buttonClass = 'bg-rose-100 border-rose-500';
-                        else buttonClass = 'bg-slate-50 text-slate-500';
+                        if(isCorrect) buttonClass = 'bg-emerald-50 border-emerald-500 text-emerald-900 shadow-sm';
+                        else if (isSelected && !isCorrect) buttonClass = 'bg-rose-50 border-rose-500 text-rose-900 shadow-sm';
+                        else buttonClass = 'bg-slate-50 border-slate-100 text-slate-400 opacity-50';
                     }
                     return ( 
                         <button 
                             key={index}
                             onClick={() => handleAnswerSelect(currentQuestionIndex, option)} 
                             disabled={!!selectionStatus} 
-                            className={`p-4 rounded-lg border-2 text-left transition ${buttonClass}`}
+                            className={`p-5 rounded-2xl border-2 text-left transition-all duration-200 text-sm font-medium ${buttonClass}`}
                         > 
                             {option} 
                         </button> 
@@ -465,22 +482,22 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
                 })}
             </div>
 
-            <div className="mt-6 min-h-[3em] flex items-center justify-center">
+            <div className="mt-8 min-h-[4em] flex items-center justify-center">
               {selectionStatus && feedbackMessage && (
-                <div className="p-4 rounded-lg bg-slate-50 w-full text-center text-lg">
+                <div className={`p-4 rounded-2xl w-full text-center text-sm font-medium animate-in slide-in-from-bottom-2 ${selectionStatus === 'correct' ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' : 'bg-rose-50 text-rose-800 border border-rose-100'}`}>
                   {feedbackMessage}
                 </div>
               )}
             </div>
 
-            <div className="mt-4 flex justify-between items-center">
-                 <Button onClick={handleSubmitQuiz} variant="secondary" className="text-rose-600 hover:bg-rose-100">
-                    <XCircle className="w-5 h-5" /> End Quiz
+            <div className="mt-8 pt-6 border-t border-rose-50 flex justify-between items-center">
+                 <Button onClick={handleSubmitQuiz} variant="secondary" className="text-rose-600 hover:bg-rose-50 border-transparent text-[10px] font-black uppercase tracking-widest">
+                    <XCircle className="w-4 h-4 mr-2" /> End Quiz
                 </Button>
                 <div className="text-right"> 
                     {selectionStatus && ( 
-                        <Button onClick={handleNextQuestion}> 
-                            {currentQuestionIndex < questions.length - 1 ? 'Next' : 'Submit'} 
+                        <Button onClick={handleNextQuestion} className="bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] px-8 py-4 shadow-lg hover:bg-slate-800"> 
+                            {currentQuestionIndex < questions.length - 1 ? 'Next Question' : 'Submit Quiz'} 
                         </Button> 
                     )} 
                 </div>

@@ -1,119 +1,142 @@
 import React from 'react';
-import { 
-  Mic, MessageSquare, FileText, Trophy, ArrowRight, 
-  Zap, Target, Users, ShieldAlert, MessagesSquare 
-} from 'lucide-react';
+import { Bot, Mic, FileText, Scale, Users, CheckSquare, Lock, Crown } from 'lucide-react';
 import Card from './Card';
-import Button from './Button';
 
 const HomePage = ({ setView, currentUser, isPremium }) => {
-  
-  const features = [
-    {
-      id: 'quiz',
-      title: 'ICF Core Competency Quiz',
-      desc: 'Test your mastery of the 8 Core Competencies.',
-      icon: <Trophy className="w-6 h-6 text-amber-600" />,
-      premium: false,
-      color: 'bg-amber-50'
-    },
-    {
-      id: 'simulation',
-      title: 'Text Simulation',
-      desc: 'Practice coaching via text with instant AI feedback.',
-      icon: <MessageSquare className="w-6 h-6 text-purple-600" />,
-      premium: false,
-      color: 'bg-purple-50'
-    },
-    {
-      id: 'transcript',
-      title: 'Transcript Evaluator',
-      desc: 'Upload real session text for ICF-aligned feedback.',
-      icon: <FileText className="w-6 h-6 text-blue-600" />,
-      premium: true,
-      color: 'bg-blue-50'
-    },
-    {
-      id: 'dilemma',
-      title: 'Ethical Dilemma',
-      desc: 'Navigate complex ICF ethical scenarios.',
-      icon: <ShieldAlert className="w-6 h-6 text-rose-600" />,
-      premium: true,
-      color: 'bg-rose-50'
-    },
-    {
-      id: 'voiceSimulation',
-      title: 'Voice Simulation',
-      desc: 'Immersive video-call simulation with AI clients.',
-      icon: <Mic className="w-6 h-6 text-emerald-600" />,
-      premium: true,
-      color: 'bg-indigo-50'
-    },    
-    {
-      id: 'community',
-      title: 'Community Chat',
-      desc: 'Connect and share insights with fellow coaches.',
-      icon: <MessagesSquare className="w-6 h-6 text-indigo-600" />,
-      premium: false,
-      color: 'bg-indigo-50'
-    }
-  ];
 
-  return (
-    <div className="max-w-6xl mx-auto space-y-10 pb-20">
-     {/* --- HERO SECTION --- */}
-<section className="relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-100 p-8 md:p-12 shadow-xl shadow-slate-200/50">
-  <div className="relative z-10 max-w-3xl"> {/* Increased max-width to allow more horizontal room */}
-    <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-6">
-      <Zap className="w-3.5 h-3.5 fill-current" /> 
-      {isPremium ? 'Premium Access Active' : '7-Day Free Trial'}
-    </div>
-    
-    <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight mb-4 leading-tight">
-      Welcome back, <span className="text-rose-800 whitespace-nowrap">{currentUser?.displayName || 'Coach'}</span>
-    </h1>
-    
-    <p className="text-base md:text-lg text-slate-500 font-medium leading-relaxed mb-8 max-w-xl">
-      The Gym is ready. Are you?
-    </p>
-    
-    <div className="flex flex-wrap gap-4">
-      <Button 
-        onClick={() => setView('voiceSimulation')} 
-        className="py-4 px-8 text-lg bg-rose-800 hover:bg-rose-900 shadow-xl shadow-rose-100 flex items-center gap-2"
-      >
-        Start Simulation <ArrowRight className="w-5 h-5" />
-      </Button>
-    </div>
-  </div>
-</section>
+    // Centralized array of your Studio tools
+    const studioFeatures = [
+        {
+            id: 'community',
+            title: 'Community Lounge',
+            description: 'Connect with other coaches, share insights, and discuss ICF competencies.',
+            icon: Users,
+            view: 'community',
+            premiumOnly: false, // FREE
+            color: 'text-emerald-600',
+            bg: 'bg-emerald-100'
+        },
+        {
+            id: 'quiz',
+            title: 'Knowledge Check',
+            description: 'Test your grasp on coaching frameworks and ethics with quick quizzes.',
+            icon: CheckSquare,
+            view: 'quiz',
+            premiumOnly: false, // FREE
+            color: 'text-blue-600',
+            bg: 'bg-blue-100'
+        },
+        {
+            id: 'simulation',
+            title: 'Text Studio',
+            description: 'Deliberate text-based practice with AI personas. Includes full ICF feedback.',
+            icon: Bot,
+            view: 'simulation',
+            premiumOnly: true, // PREMIUM
+            color: 'text-rose-700',
+            bg: 'bg-rose-100'
+        },
+        {
+            id: 'voiceSimulation',
+            title: 'Voice Studio',
+            description: 'Real-time spoken conversations with AI clients. Practice your vocal presence.',
+            icon: Mic,
+            view: 'voiceSimulation',
+            premiumOnly: true, // PREMIUM
+            color: 'text-violet-600',
+            bg: 'bg-violet-100'
+        },
+        {
+            id: 'transcript',
+            title: 'Transcript Evaluator',
+            description: 'Upload your recorded session transcripts for a deep-dive performance audit.',
+            icon: FileText,
+            view: 'transcript',
+            premiumOnly: true, // PREMIUM
+            color: 'text-amber-600',
+            bg: 'bg-amber-100'
+        },
+        {
+            id: 'dilemma',
+            title: 'Ethical Dilemmas',
+            description: 'Navigate complex coaching scenarios to build your ethical decision-making muscle.',
+            icon: Scale,
+            view: 'dilemma',
+            premiumOnly: true, // PREMIUM
+            color: 'text-cyan-600',
+            bg: 'bg-cyan-100'
+        }
+    ];
 
-      {/* Re-populated Actions Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {features.map((item) => (
-          <Card 
-            key={item.id} 
-            className="group hover:border-emerald-500 hover:shadow-2xl transition-all" 
-            onClick={() => setView(item.id)} // This will now work with updated Card.jsx!
-          >
-            <div className={`w-14 h-14 ${item.color} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-              {item.icon}
+    return (
+        <div className="max-w-6xl mx-auto py-8 fade-in">
+            <header className="mb-12 text-center md:text-left">
+                <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase mb-2">
+                    Welcome back, {currentUser?.displayName?.split(' ')[0] || 'Coach'}
+                </h1>
+                <p className="text-rose-900 font-medium">Select a studio tool to begin your practice.</p>
+                {/* PROMINENT TOP-RIGHT UPGRADE CTA */}
+                {!isPremium && (
+                    <div className="flex-shrink-0 flex flex-col items-center md:items-end">
+                        <button 
+                            onClick={() => setView('dashboard')} 
+                            className="group relative flex items-center gap-3 bg-rose-800 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-rose-900 transition-all shadow-xl shadow-rose-900/20 overflow-hidden transform active:scale-95"
+                        >
+                            {/* Subtle shine effect on hover */}
+                            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                            
+                            <Crown className="w-5 h-5 text-rose-200" />
+                            Unlock all features
+                        </button>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-3 text-center md:text-right">
+                            Get unlimited access to AI simulations, transcript evaluations, ethical dilemmas and all new features
+                        </p>
+                    </div>
+                )}
+            </header>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {studioFeatures.map((feature) => {
+                    // Determine if this specific card should be locked for this user
+                    const isLocked = !isPremium && feature.premiumOnly;
+
+                    return (
+                        <Card 
+                            key={feature.id}
+                            onClick={() => setView(feature.view)}
+                            className={`
+                                relative cursor-pointer transition-all duration-300 border-2
+                                ${isLocked 
+                                    ? 'opacity-70 grayscale-[30%] border-slate-200 bg-slate-50 hover:opacity-100 hover:grayscale-0' 
+                                    : 'border-transparent hover:border-rose-100 hover:shadow-xl hover:-translate-y-1 bg-white shadow-sm'
+                                }
+                            `}
+                        >
+                            {/* The Lock/Crown Badge */}
+                            {isLocked && (
+                                <div className="absolute top-4 right-4 flex items-center gap-1 bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
+                                    <Lock size={12} />
+                                    <span>Premium</span>
+                                </div>
+                            )}
+
+                            <div className="p-2">
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 ${isLocked ? 'bg-slate-200 text-slate-500' : feature.bg + ' ' + feature.color}`}>
+                                    <feature.icon size={28} />
+                                </div>
+                                <h3 className={`text-lg font-black uppercase tracking-tight mb-2 ${isLocked ? 'text-slate-700' : 'text-slate-900'}`}>
+                                    {feature.title}
+                                </h3>
+                                <p className="text-sm text-slate-500 leading-relaxed font-medium">
+                                    {feature.description}
+                                </p>
+                            </div>
+                        </Card>
+                    );
+                })}
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
-              {item.title}
-              {item.premium && !isPremium && <Zap className="w-3.5 h-3.5 text-slate-300" />}
-            </h3>
-            <p className="text-slate-500 text-sm leading-relaxed mb-6">
-              {item.desc}
-            </p>
-            <div className="flex items-center text-emerald-600 font-black text-xs uppercase tracking-widest group-hover:gap-3 transition-all">
-              Launch <ArrowRight className="w-4 h-4 ml-2" />
-            </div>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
+        </div>
+    );
 };
 
 export default HomePage;
