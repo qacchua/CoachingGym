@@ -7,6 +7,7 @@ import LoadingSpinner from './LoadingSpinner';
 import { callGeminiAPI } from '../utils/api';
 import { collection, addDoc, onSnapshot } from "firebase/firestore";
 import { db } from '../firebaseConfig.js';
+import { icfGradingRubric2025 } from '../utils/rubrics';
 
 const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
     // --- STATE ---
@@ -116,7 +117,7 @@ const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
         } catch (e) { console.error(e); } finally { setIsLoading(false); }
     };
 
-    // --- SEQUENTIAL EVALUATION LOGIC (STABILITY FIX) ---
+   // --- SEQUENTIAL EVALUATION LOGIC (STABILITY FIX) ---
     const handleEndAndEvaluate = useCallback(async () => {
         if (history.length < 4) { alert("Have a longer conversation first."); return; }
         
@@ -136,38 +137,46 @@ const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
         };
 
         try {
-            // Task 1: Competencies
+            // Task 1: Competencies (STRICT RUBRIC INJECTED)
             setLoadingText("Studio: Rating Competencies (1/3)...");
-            const compRes = await callGeminiAPI(`ICF Analysis: ${transcript}`, { 
-                type: "OBJECT", 
-                properties: { evaluation: { type: "ARRAY", items: { type: "OBJECT", properties: { competency: { type: "STRING" }, rating: { type: "STRING" }, justification: { type: "STRING" } }, required: ["competency", "rating", "justification"] } } } 
-            });
+            const compRes = await callGeminiAPI(
+                `${icfGradingRubric2025}\n\nBased STRICTLY on the rubric above, perform an ICF Analysis on this transcript:\n\n${transcript}`, 
+                { 
+                    type: "OBJECT", 
+                    properties: { evaluation: { type: "ARRAY", items: { type: "OBJECT", properties: { competency: { type: "STRING" }, rating: { type: "STRING" }, justification: { type: "STRING" } }, required: ["competency", "rating", "justification"] } } } 
+                }
+            );
+            // THE FIX: Actually save the result!
             finalReport.evaluation = compRes?.evaluation || [];
 
-            // Task 2: Metrics
+            // Task 2: Metrics (Math only)
             setLoadingText("Studio: Calculating Metrics (2/3)...");
             const metricRes = await callGeminiAPI(`Talk Time % and Question Categories: ${transcript}`, {
                 type: "OBJECT", 
-                properties: { 
-                    speakerAnalysis: { type: "OBJECT", properties: { coachPercentage: { type: "NUMBER" }, clientPercentage: { type: "NUMBER" } }, required: ["coachPercentage", "clientPercentage"] },
-                    questionAnalysis: { type: "OBJECT", properties: { openEnded: { type: "NUMBER" }, leading: { type: "NUMBER" }, clarifying: { type: "NUMBER" }, observation: { type: "NUMBER" } }, required: ["openEnded", "leading", "clarifying", "observation"] }
-                }
+                properties: { speakerAnalysis: { type: "OBJECT", properties: { coachPercentage: { type: "NUMBER" }, clientPercentage: { type: "NUMBER" } } }, questionAnalysis: { type: "OBJECT", properties: { openEnded: { type: "NUMBER" }, leading: { type: "NUMBER" }, clarifying: { type: "NUMBER" }, observation: { type: "NUMBER" } } } }
             });
+            // THE FIX: Actually save the metrics!
             finalReport.speakerAnalysis = metricRes?.speakerAnalysis || finalReport.speakerAnalysis;
             finalReport.questionAnalysis = metricRes?.questionAnalysis || finalReport.questionAnalysis;
 
-            // Task 3: Insights
+            // Task 3: Insights (STRICT RUBRIC INJECTED)
             setLoadingText("Studio: Finalizing Insights (3/3)...");
-            const insightRes = await callGeminiAPI(`5 insights and 5 questions: ${transcript}`, {
-                type: "OBJECT", 
-                properties: { keyInsights: { type: "ARRAY", items: { type: "STRING" } }, alternativeQuestions: { type: "ARRAY", items: { type: "STRING" } } }, 
-                required: ["keyInsights", "alternativeQuestions"]
-            });
+            const insightRes = await callGeminiAPI(
+                `${icfGradingRubric2025}\n\nBased on the ICF rubric above, provide 5 key insights and 5 alternative powerful questions for this transcript:\n\n${transcript}`, 
+                {
+                    type: "OBJECT", 
+                    properties: { keyInsights: { type: "ARRAY", items: { type: "STRING" } }, alternativeQuestions: { type: "ARRAY", items: { type: "STRING" } } }, 
+                    required: ["keyInsights", "alternativeQuestions"]
+                }
+            );
+            // THE FIX: Save the insights!
             finalReport.keyInsights = insightRes?.keyInsights || [];
             finalReport.alternativeQuestions = insightRes?.alternativeQuestions || [];
 
+            // Push the final compiled report to the screen
             setEvaluationResult(finalReport);
             setView('result');
+            
         } catch(e) { 
             console.error("Evaluation Error:", e);
             alert("The AI had a temporary hiccup. Please click 'Generate Report' one more time.");
@@ -175,7 +184,7 @@ const Simulation = ({ setView, currentUser, setEvaluationResult }) => {
             setIsEvaluating(false); 
         }
     }, [history, setView, setEvaluationResult]);
-
+    
     // --- RENDER VIEWS ---
     if (isEvaluating) return <LoadingSpinner text={loadingText} />;
 

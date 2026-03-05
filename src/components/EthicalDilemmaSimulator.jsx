@@ -17,6 +17,7 @@ import {
   onSnapshot // Use onSnapshot to get the public dilemma list
 } from "firebase/firestore"; 
 import { db } from '../firebaseConfig.js';
+import {icfEthicsRubric2025} from '../utils/rubrics';
 
 // These are now just a fallback in case firestore is empty
 const fallbackDilemmas = [
@@ -267,21 +268,26 @@ const EthicalDilemmaSimulator = ({ setView, currentUser }) => {
         timestamp: new Date()
       }, { merge: true }); // Merge, so we don't overwrite feedback
 
-      // 3. Get AI feedback
+      // 3. Get AI feedback (STRICT ETHICS RUBRIC INJECTED)
       const feedbackSchema = {
         type: "OBJECT",
         properties: {
-          strengths: { type: "STRING", description: "Positive aspects." },
-          pitfalls: { type: "STRING", description: "Potential risks." },
-          alternatives: { type: "STRING", description: "Alternative actions." }
+          strengths: { type: "STRING", description: "Positive aspects aligned with ICF Standards." },
+          pitfalls: { type: "STRING", description: "Potential risks or ICF Standard violations." },
+          alternatives: { type: "STRING", description: "Alternative actions aligned with ICF Standards." }
         },
         required: ["strengths", "pitfalls", "alternatives"]
       };
+
       const feedbackPrompt = `
-        You are an ICF MCC. Dilemma: "${currentDilemma.scenario}"
-        Solution: "${userResponse}"
-        Analyze based on ICF Code of Ethics. Return JSON: "strengths", "pitfalls", "alternatives".
+        ${icfEthicsRubric2025}
+
+        Based strictly on the ethics code provided above, evaluate this coach's proposed solution to the ethical dilemma.
+        
+        DILEMMA: "${currentDilemma.scenario}"
+        COACH'S PROPOSED SOLUTION: "${userResponse}"
       `;
+
       const result = await callGeminiAPI(feedbackPrompt, feedbackSchema);
       
       // 4. Save the AI feedback to that SAME private doc

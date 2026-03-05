@@ -70,25 +70,29 @@ const HomePage = ({ setView, currentUser, isPremium }) => {
 
     return (
         <div className="max-w-6xl mx-auto py-8 fade-in">
-            <header className="mb-12 text-center md:text-left">
-                <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase mb-2">
-                    Welcome back, {currentUser?.displayName?.split(' ')[0] || 'Coach'}
-                </h1>
-                <p className="text-rose-900 font-medium">Select a studio tool to begin your practice.</p>
-                {/* PROMINENT TOP-RIGHT UPGRADE CTA */}
+            <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-rose-50 pb-8">
+                {/* LEFT SIDE: Added flex-1 so it takes up available space evenly */}
+                <div className="text-center md:text-left flex-1">
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase mb-2">
+                        Welcome back, {currentUser?.displayName?.split(' ')[0] || 'Coach'}
+                    </h1>
+                    <p className="text-rose-800 font-medium">Select a studio tool to begin your practice.</p>
+                </div>
+
+                {/* RIGHT SIDE: Upgrade CTA */}
                 {!isPremium && (
                     <div className="flex-shrink-0 flex flex-col items-center md:items-end">
                         <button 
                             onClick={() => setView('dashboard')} 
-                            className="group relative flex items-center gap-3 bg-rose-800 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-rose-900 transition-all shadow-xl shadow-rose-900/20 overflow-hidden transform active:scale-95"
+                            className="group relative flex items-center gap-3 bg-purple-800 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-rose-900 transition-all shadow-xl shadow-rose-900/20 overflow-hidden transform active:scale-95"
                         >
-                            {/* Subtle shine effect on hover */}
                             <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                            
-                            <Crown className="w-5 h-5 text-rose-200" />
-                            Unlock all features
+                            <Crown className="w-5 h-5 text-gold-200" />
+                            Unlock All Features
                         </button>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-3 text-center md:text-right">
+                        
+                        {/* THE FIX: Added max-w-sm to force the long text to wrap cleanly under the button */}
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-3 text-center md:text-right max-w-sm leading-relaxed">
                             Get unlimited access to AI simulations, transcript evaluations, ethical dilemmas and all new features
                         </p>
                     </div>
