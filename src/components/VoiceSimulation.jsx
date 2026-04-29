@@ -4,12 +4,13 @@ import Card from './Card';
 import Button from './Button';
 import IconWrapper from './IconWrapper';
 import LoadingSpinner from './LoadingSpinner';
-import { callGeminiAPI, generateImageAPI } from '../utils/api';
+//import { callGeminiAPI, generateImageAPI } from '../utils/api'; Replicated elsewhere
 import { base64ToArrayBuffer, pcmToWav } from '../utils/tts';
 import { firebaseConfig, db } from '../firebaseConfig';
 import { collection, addDoc, onSnapshot } from "firebase/firestore";
 // --- IMPORT THE RUBRIC ---
 import { icfGradingRubric2025 } from '../utils/rubrics';
+import { callGeminiAPI, generateImageAPI, generateSpeechAPI } from '../utils/api';
 
 const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
   const [simulationStep, setSimulationStep] = useState('options');
@@ -22,7 +23,7 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
-  const [loadingText, setLoadingText] = useState(''); // Added for sequential evaluation
+  const [loadingText, setLoadingText] = useState(''); 
   const [isMuted, setIsMuted] = useState(false);
   const [showHint, setShowHint] = useState(true);
   const [error, setError] = useState(null);
@@ -71,26 +72,32 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
     return `Role-play as: Name: ${p.name}, Role: ${p.role} (${p.industry}). Challenges: "${p.challenges}". Goals: "${p.goals}". Internal State: "${p.internalState || 'N/A'}". Key People: "${p.keyPeople || 'N/A'}".`;
   };
 
+  // --- UPDATED SPEECH LOGIC (WITH FALLBACK) ---
   const speak = async (text, gender = 'Female') => {
     if (!text) return;
     setIsSpeaking(true);
     setShowHint(false);
-    const voiceName = gender.toLowerCase() === 'male' ? 'Charon' : 'Kore';
-    const payload = {
-        contents: [{ parts: [{ text: `Say this naturally: ${text}` }] }],
-        generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } },
-        model: "gemini-2.5-flash"
+    
+    // Emergency browser TTS fallback
+    const useFallbackTTS = () => {
+        console.warn("Using browser fallback TTS");
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voices = window.speechSynthesis.getVoices();
+        utterance.voice = voices.find(v => gender.toLowerCase() === 'male' ? (v.name.includes('Male') || v.name.includes('David') || v.name.includes('Daniel')) : (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Victoria'))) || voices[0];
+        utterance.onend = () => { setIsSpeaking(false); setShowHint(true); };
+        utterance.onerror = () => { setIsSpeaking(false); setShowHint(true); };
+        window.speechSynthesis.speak(utterance);
     };
+
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${firebaseConfig.apiKey}`, { 
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) 
-        });
-        const result = await response.json();
-        const audioData = result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        // Ping our secure backend instead of the public Gemini API
+        const audioData = await generateSpeechAPI(text, gender);
+        
         if (audioData) {
             const pcmData = base64ToArrayBuffer(audioData);
             const wavBlob = pcmToWav(new Int16Array(pcmData), 24000);
             const audio = new Audio(URL.createObjectURL(wavBlob));
+            
             audio.onplay = () => startVisualizer(audio);
             audio.onended = () => {
                 setIsSpeaking(false);
@@ -98,9 +105,17 @@ const VoiceSimulation = ({ setView, currentUser, setEvaluationResult }) => {
                 if (audioContextRef.current) audioContextRef.current.close();
                 cancelAnimationFrame(animationFrameRef.current);
             };
-            audio.play().catch(e => console.error("Playback blocked.", e));
+            audio.play().catch(e => {
+                console.error("Playback blocked by browser.", e);
+                useFallbackTTS();
+            });
+        } else {
+            useFallbackTTS();
         }
-    } catch (e) { setIsSpeaking(false); setShowHint(true); }
+    } catch (e) { 
+        console.error("Backend TTS Request failed:", e);
+        useFallbackTTS();
+    }
   };
 
   const handleAiResponse = async (currentHistory) => {

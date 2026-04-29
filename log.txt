@@ -1,0 +1,389 @@
+2026-04-29T01:25:21.174037Z I createcheckoutsession: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-29T01:25:22.521115008Z N createCheckoutSession: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"coachq@qacchua.com","principalSubject":"user:coachq@qacchua.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"requestAttributes":{},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v2.FunctionService.UpdateFunction","resourceName":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","response":{"createTime":"2026-03-05T20:42:36.259121812Z","serviceConfig":{"maxInstanceCount":20,"uri":"https://createcheckoutsession-dbwqrbqk6a-uc.a.run.app","serviceAccountEmail":"1031898569985-compute@developer.gserviceaccount.com","allTrafficOnLatestRevision":true,"revision":"createcheckoutsession-00009-ruz","secretEnvironmentVariables":[{"secret":"STRIPE_SECRET_KEY","projectId":"coachq-prod","key":"STRIPE_SECRET_KEY","version":"2"}],"availableMemory":"256Mi","maxInstanceRequestConcurrency":80,"availableCpu":"1","ingressSettings":"ALLOW_ALL","timeoutSeconds":60},"updateTime":"2026-04-29T01:24:20.568777613Z","@type":"type.googleapis.com/google.cloud.functions.v2.Function","environment":"GEN_2","name":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","url":"https://us-central1-coachq-prod.cloudfunctions.net/createCheckoutSession","buildConfig":{"dockerRepository":"projects/coachq-prod/locations/us-central1/repositories/gcf-artifacts","dockerRegistry":"ARTIFACT_REGISTRY","entryPoint":"createCheckoutSession","runtime":"nodejs20","automaticUpdatePolicy":{},"source":{},"serviceAccount":"projects/coachq-prod/serviceAccounts/1031898569985-compute@developer.gserviceaccount.com"},"labels":{"firebase-functions-hash":"30ac356d3fcfef2999eca77dd71b65e02309432b","deployment-tool":"cli-firebase","deployment-callable":"true"},"state":"ACTIVE","satisfiesPzi":true},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-04-29T01:25:24.802691Z I createcheckoutsession: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-29T01:26:14.254401356Z N createCheckoutSession: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"coachq@qacchua.com","principalSubject":"user:coachq@qacchua.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"callerIp":"2600:1700:3d40:92e0:6482:fe76:acdb:edec","callerSuppliedUserAgent":"FirebaseCLI/14.27.0,gzip(gfe),gzip(gfe)","requestAttributes":{"time":"2026-04-29T01:26:13.398294979Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v2.FunctionService.UpdateFunction","authorizationInfo":[{"resource":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","permission":"cloudfunctions.functions.update","granted":true,"resourceAttributes":{"service":"cloudfunctions.googleapis.com","name":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","type":"cloudfunctions.googleapis.com/Function"},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","request":{"update_mask":{"paths":["name","build_config.runtime","build_config.entry_point","build_config.source.storage_source.bucket","build_config.source.storage_source.object","build_config.environment_variables","build_config.source_token","service_config.environment_variables","service_config.secret_environment_variables","service_config.ingress_settings","service_config.timeout_seconds","service_config.service_account_email","service_config.available_memory","service_config.min_instance_count","service_config.max_instance_count","service_config.max_instance_request_concurrency","service_config.available_cpu","service_config.vpc_connector","service_config.vpc_connector_egress_settings","labels"]},"@type":"type.googleapis.com/google.cloud.functions.v2.UpdateFunctionRequest","function":{"labels":{"deployment-callable":"true","deployment-tool":"cli-firebase","firebase-functions-hash":"5f6d6cf3a6495432b24d572098e1bfb5ab868057"},"service_config":{"secret_environment_variables":[{"key":"STRIPE_SECRET_KEY","version":"2","project_id":"coachq-prod","secret":"STRIPE_SECRET_KEY"}],"available_memory":"256Mi","available_cpu":"1","max_instance_request_concurrency":80},"name":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","build_config":{"entry_point":"createCheckoutSession","runtime":"nodejs20","source":{}}}},"response":{"@type":"type.googleapis.com/google.longrunning.Operation"},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-04-29T01:26:55.811507Z I createcheckoutsession: Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+2026-04-29T01:26:57.151778Z I createcheckoutsession: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-29T01:26:58.968843174Z N createCheckoutSession: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"coachq@qacchua.com","principalSubject":"user:coachq@qacchua.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"requestAttributes":{},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v2.FunctionService.UpdateFunction","resourceName":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","response":{"buildConfig":{"runtime":"nodejs20","entryPoint":"createCheckoutSession","automaticUpdatePolicy":{},"source":{},"dockerRepository":"projects/coachq-prod/locations/us-central1/repositories/gcf-artifacts","dockerRegistry":"ARTIFACT_REGISTRY","serviceAccount":"projects/coachq-prod/serviceAccounts/1031898569985-compute@developer.gserviceaccount.com"},"environment":"GEN_2","@type":"type.googleapis.com/google.cloud.functions.v2.Function","url":"https://us-central1-coachq-prod.cloudfunctions.net/createCheckoutSession","state":"ACTIVE","updateTime":"2026-04-29T01:26:14.240836062Z","satisfiesPzi":true,"name":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","serviceConfig":{"ingressSettings":"ALLOW_ALL","timeoutSeconds":60,"availableMemory":"256Mi","uri":"https://createcheckoutsession-dbwqrbqk6a-uc.a.run.app","availableCpu":"1","secretEnvironmentVariables":[{"secret":"STRIPE_SECRET_KEY","key":"STRIPE_SECRET_KEY","version":"2","projectId":"coachq-prod"}],"maxInstanceCount":20,"maxInstanceRequestConcurrency":80,"allTrafficOnLatestRevision":true,"revision":"createcheckoutsession-00010-baz","serviceAccountEmail":"1031898569985-compute@developer.gserviceaccount.com"},"labels":{"deployment-tool":"cli-firebase","deployment-callable":"true","firebase-functions-hash":"5f6d6cf3a6495432b24d572098e1bfb5ab868057"},"createTime":"2026-03-05T20:42:36.259121812Z"},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-04-29T01:27:17.491632Z I createcheckoutsession: 
+2026-04-29T01:27:17.584834Z E createcheckoutsession: 
+2026-04-29T01:27:17.701975Z D createcheckoutsession: {"message":"Callable request verification passed","verifications":{"auth":"VALID","app":"MISSING"}}
+2026-04-29T01:27:17.957632Z ? createcheckoutsession: Stripe Checkout Error: StripeAuthenticationError: Invalid API Key provided: mk_1QsCC***************N48P
+    at res.toJSON.then.Error_js_1.StripeAPIError.message (/workspace/node_modules/stripe/cjs/RequestSender.js:102:31)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  type: 'StripeAuthenticationError',
+  raw: {
+    message: 'Invalid API Key provided: mk_1QsCC***************N48P',
+    type: 'invalid_request_error',
+    headers: {
+      server: 'nginx',
+      date: 'Wed, 29 Apr 2026 01:27:17 GMT',
+      'content-type': 'application/json',
+      'content-length': '129',
+      connection: 'keep-alive',
+      'access-control-allow-credentials': 'true',
+      'access-control-allow-methods': 'GET, HEAD, PUT, PATCH, POST, DELETE',
+      'access-control-allow-origin': '*',
+      'access-control-expose-headers': 'Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required',
+      'access-control-max-age': '300',
+      'cache-control': 'no-cache, no-store',
+      'content-security-policy': "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests",
+      vary: 'Origin',
+      'www-authenticate': 'Bearer realm="Stripe"',
+      'x-robots-tag': 'none',
+      'x-wc': '383',
+      'strict-transport-security': 'max-age=63072000; includeSubDomains; preload'
+    },
+    statusCode: 401,
+    requestId: undefined
+  },
+  rawType: 'invalid_request_error',
+  code: undefined,
+  doc_url: undefined,
+  param: undefined,
+  detail: undefined,
+  headers: {
+    server: 'nginx',
+    date: 'Wed, 29 Apr 2026 01:27:17 GMT',
+    'content-type': 'application/json',
+    'content-length': '129',
+    connection: 'keep-alive',
+    'access-control-allow-credentials': 'true',
+    'access-control-allow-methods': 'GET, HEAD, PUT, PATCH, POST, DELETE',
+    'access-control-allow-origin': '*',
+    'access-control-expose-headers': 'Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required',
+    'access-control-max-age': '300',
+    'cache-control': 'no-cache, no-store',
+    'content-security-policy': "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests",
+    vary: 'Origin',
+    'www-authenticate': 'Bearer realm="Stripe"',
+    'x-robots-tag': 'none',
+    'x-wc': '383',
+    'strict-transport-security': 'max-age=63072000; includeSubDomains; preload'
+  },
+  requestId: undefined,
+  statusCode: 401,
+  userMessage: undefined,
+  charge: undefined,
+  decline_code: undefined,
+  payment_intent: undefined,
+  payment_method: undefined,
+  payment_method_type: undefined,
+  setup_intent: undefined,
+  source: undefined
+}
+
+2026-04-29T01:27:33.123292Z I createcheckoutsession: 
+2026-04-29T01:27:33.191848Z E createcheckoutsession: 
+2026-04-29T01:27:33.197574Z D createcheckoutsession: {"message":"Callable request verification passed","verifications":{"app":"MISSING","auth":"VALID"}}
+2026-04-29T01:27:33.232845Z ? createcheckoutsession: Stripe Checkout Error: StripeAuthenticationError: Invalid API Key provided: mk_1QsCC***************N48P
+    at res.toJSON.then.Error_js_1.StripeAPIError.message (/workspace/node_modules/stripe/cjs/RequestSender.js:102:31)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  type: 'StripeAuthenticationError',
+  raw: {
+    message: 'Invalid API Key provided: mk_1QsCC***************N48P',
+    type: 'invalid_request_error',
+    headers: {
+      server: 'nginx',
+      date: 'Wed, 29 Apr 2026 01:27:33 GMT',
+      'content-type': 'application/json',
+      'content-length': '129',
+      connection: 'keep-alive',
+      'access-control-allow-credentials': 'true',
+      'access-control-allow-methods': 'GET, HEAD, PUT, PATCH, POST, DELETE',
+      'access-control-allow-origin': '*',
+      'access-control-expose-headers': 'Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required',
+      'access-control-max-age': '300',
+      'cache-control': 'no-cache, no-store',
+      'content-security-policy': "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests",
+      vary: 'Origin',
+      'www-authenticate': 'Bearer realm="Stripe"',
+      'x-robots-tag': 'none',
+      'x-wc': '383',
+      'strict-transport-security': 'max-age=63072000; includeSubDomains; preload'
+    },
+    statusCode: 401,
+    requestId: undefined
+  },
+  rawType: 'invalid_request_error',
+  code: undefined,
+  doc_url: undefined,
+  param: undefined,
+  detail: undefined,
+  headers: {
+    server: 'nginx',
+    date: 'Wed, 29 Apr 2026 01:27:33 GMT',
+    'content-type': 'application/json',
+    'content-length': '129',
+    connection: 'keep-alive',
+    'access-control-allow-credentials': 'true',
+    'access-control-allow-methods': 'GET, HEAD, PUT, PATCH, POST, DELETE',
+    'access-control-allow-origin': '*',
+    'access-control-expose-headers': 'Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required',
+    'access-control-max-age': '300',
+    'cache-control': 'no-cache, no-store',
+    'content-security-policy': "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests",
+    vary: 'Origin',
+    'www-authenticate': 'Bearer realm="Stripe"',
+    'x-robots-tag': 'none',
+    'x-wc': '383',
+    'strict-transport-security': 'max-age=63072000; includeSubDomains; preload'
+  },
+  requestId: undefined,
+  statusCode: 401,
+  userMessage: undefined,
+  charge: undefined,
+  decline_code: undefined,
+  payment_intent: undefined,
+  payment_method: undefined,
+  payment_method_type: undefined,
+  setup_intent: undefined,
+  source: undefined
+}
+
+2026-04-29T01:28:33.256500Z I createcheckoutsession: 
+2026-04-29T01:28:33.329365Z E createcheckoutsession: 
+2026-04-29T01:28:33.335510Z D createcheckoutsession: {"verifications":{"auth":"VALID","app":"MISSING"},"message":"Callable request verification passed"}
+2026-04-29T01:28:33.370428Z ? createcheckoutsession: Stripe Checkout Error: StripeAuthenticationError: Invalid API Key provided: mk_1QsCC***************N48P
+    at res.toJSON.then.Error_js_1.StripeAPIError.message (/workspace/node_modules/stripe/cjs/RequestSender.js:102:31)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  type: 'StripeAuthenticationError',
+  raw: {
+    message: 'Invalid API Key provided: mk_1QsCC***************N48P',
+    type: 'invalid_request_error',
+    headers: {
+      server: 'nginx',
+      date: 'Wed, 29 Apr 2026 01:28:33 GMT',
+      'content-type': 'application/json',
+      'content-length': '129',
+      connection: 'keep-alive',
+      'access-control-allow-credentials': 'true',
+      'access-control-allow-methods': 'GET, HEAD, PUT, PATCH, POST, DELETE',
+      'access-control-allow-origin': '*',
+      'access-control-expose-headers': 'Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required',
+      'access-control-max-age': '300',
+      'cache-control': 'no-cache, no-store',
+      'content-security-policy': "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests",
+      vary: 'Origin',
+      'www-authenticate': 'Bearer realm="Stripe"',
+      'x-robots-tag': 'none',
+      'x-wc': '383',
+      'strict-transport-security': 'max-age=63072000; includeSubDomains; preload'
+    },
+    statusCode: 401,
+    requestId: undefined
+  },
+  rawType: 'invalid_request_error',
+  code: undefined,
+  doc_url: undefined,
+  param: undefined,
+  detail: undefined,
+  headers: {
+    server: 'nginx',
+    date: 'Wed, 29 Apr 2026 01:28:33 GMT',
+    'content-type': 'application/json',
+    'content-length': '129',
+    connection: 'keep-alive',
+    'access-control-allow-credentials': 'true',
+    'access-control-allow-methods': 'GET, HEAD, PUT, PATCH, POST, DELETE',
+    'access-control-allow-origin': '*',
+    'access-control-expose-headers': 'Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required',
+    'access-control-max-age': '300',
+    'cache-control': 'no-cache, no-store',
+    'content-security-policy': "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests",
+    vary: 'Origin',
+    'www-authenticate': 'Bearer realm="Stripe"',
+    'x-robots-tag': 'none',
+    'x-wc': '383',
+    'strict-transport-security': 'max-age=63072000; includeSubDomains; preload'
+  },
+  requestId: undefined,
+  statusCode: 401,
+  userMessage: undefined,
+  charge: undefined,
+  decline_code: undefined,
+  payment_intent: undefined,
+  payment_method: undefined,
+  payment_method_type: undefined,
+  setup_intent: undefined,
+  source: undefined
+}
+
+2026-04-29T01:38:15.008692166Z N createCheckoutSession: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"coachq@qacchua.com","principalSubject":"user:coachq@qacchua.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"callerIp":"2600:1700:3d40:92e0:6482:fe76:acdb:edec","callerSuppliedUserAgent":"FirebaseCLI/14.27.0,gzip(gfe),gzip(gfe)","requestAttributes":{"time":"2026-04-29T01:38:14.070528978Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v2.FunctionService.UpdateFunction","authorizationInfo":[{"resource":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","permission":"cloudfunctions.functions.update","granted":true,"resourceAttributes":{"service":"cloudfunctions.googleapis.com","name":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","type":"cloudfunctions.googleapis.com/Function"},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","request":{"@type":"type.googleapis.com/google.cloud.functions.v2.UpdateFunctionRequest","function":{"labels":{"firebase-functions-hash":"5f6d6cf3a6495432b24d572098e1bfb5ab868057","deployment-callable":"true","deployment-tool":"cli-firebase"},"service_config":{"ingress_settings":"ALLOW_ALL","available_memory":"256Mi","secret_environment_variables":[{"project_id":"coachq-prod","key":"STRIPE_SECRET_KEY","secret":"STRIPE_SECRET_KEY","version":"3"}],"available_cpu":"1","timeout_seconds":60,"max_instance_count":20,"max_instance_request_concurrency":80,"service_account_email":"1031898569985-compute@developer.gserviceaccount.com"},"build_config":{"entry_point":"createCheckoutSession","source":{},"runtime":"nodejs20"},"name":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession"},"update_mask":{"paths":["name","build_config.runtime","build_config.entry_point","build_config.source.storage_source.bucket","build_config.source.storage_source.object","build_config.source.storage_source.generation","build_config.environment_variables","service_config.environment_variables","service_config.secret_environment_variables","service_config.ingress_settings","service_config.timeout_seconds","service_config.service_account_email","service_config.available_memory","service_config.max_instance_count","service_config.max_instance_request_concurrency","service_config.available_cpu","labels"]}},"response":{"@type":"type.googleapis.com/google.longrunning.Operation"},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-04-29T01:39:05.637135Z I createcheckoutsession: Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+2026-04-29T01:39:08.329738Z I createcheckoutsession: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-29T01:39:18.335397051Z N createCheckoutSession: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"coachq@qacchua.com","principalSubject":"user:coachq@qacchua.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"requestAttributes":{},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v2.FunctionService.UpdateFunction","resourceName":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","response":{"environment":"GEN_2","url":"https://us-central1-coachq-prod.cloudfunctions.net/createCheckoutSession","name":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","buildConfig":{"entryPoint":"createCheckoutSession","dockerRepository":"projects/coachq-prod/locations/us-central1/repositories/gcf-artifacts","dockerRegistry":"ARTIFACT_REGISTRY","runtime":"nodejs20","source":{},"serviceAccount":"projects/coachq-prod/serviceAccounts/1031898569985-compute@developer.gserviceaccount.com","automaticUpdatePolicy":{}},"satisfiesPzi":true,"createTime":"2026-03-05T20:42:36.259121812Z","state":"ACTIVE","serviceConfig":{"availableCpu":"1","maxInstanceCount":20,"ingressSettings":"ALLOW_ALL","uri":"https://createcheckoutsession-dbwqrbqk6a-uc.a.run.app","maxInstanceRequestConcurrency":80,"revision":"createcheckoutsession-00011-hac","allTrafficOnLatestRevision":true,"secretEnvironmentVariables":[{"secret":"STRIPE_SECRET_KEY","version":"3","key":"STRIPE_SECRET_KEY","projectId":"coachq-prod"}],"availableMemory":"256Mi","timeoutSeconds":60,"serviceAccountEmail":"1031898569985-compute@developer.gserviceaccount.com"},"labels":{"deployment-callable":"true","deployment-tool":"cli-firebase","firebase-functions-hash":"5f6d6cf3a6495432b24d572098e1bfb5ab868057"},"updateTime":"2026-04-29T01:38:14.996829790Z","@type":"type.googleapis.com/google.cloud.functions.v2.Function"},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-04-29T01:39:47.338406024Z N createCheckoutSession: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"coachq@qacchua.com","principalSubject":"user:coachq@qacchua.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"callerIp":"2600:1700:3d40:92e0:6482:fe76:acdb:edec","callerSuppliedUserAgent":"FirebaseCLI/14.27.0,gzip(gfe),gzip(gfe)","requestAttributes":{"time":"2026-04-29T01:39:46.574072226Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v2.FunctionService.UpdateFunction","authorizationInfo":[{"resource":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","permission":"cloudfunctions.functions.update","granted":true,"resourceAttributes":{"service":"cloudfunctions.googleapis.com","name":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","type":"cloudfunctions.googleapis.com/Function"},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","request":{"update_mask":{"paths":["name","build_config.runtime","build_config.entry_point","build_config.source.storage_source.bucket","build_config.source.storage_source.object","build_config.environment_variables","build_config.source_token","service_config.environment_variables","service_config.secret_environment_variables","service_config.ingress_settings","service_config.timeout_seconds","service_config.service_account_email","service_config.available_memory","service_config.min_instance_count","service_config.max_instance_count","service_config.max_instance_request_concurrency","service_config.available_cpu","service_config.vpc_connector","service_config.vpc_connector_egress_settings","labels"]},"@type":"type.googleapis.com/google.cloud.functions.v2.UpdateFunctionRequest","function":{"build_config":{"runtime":"nodejs20","entry_point":"createCheckoutSession","source":{}},"name":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","labels":{"firebase-functions-hash":"53ad6b006d91345a48dd0e41b74337ac5ffd97f7","deployment-callable":"true","deployment-tool":"cli-firebase"},"service_config":{"available_memory":"256Mi","available_cpu":"1","max_instance_request_concurrency":80,"secret_environment_variables":[{"secret":"STRIPE_SECRET_KEY","project_id":"coachq-prod","key":"STRIPE_SECRET_KEY","version":"3"}]}}},"response":{"@type":"type.googleapis.com/google.longrunning.Operation"},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-04-29T01:40:25.780116Z I createcheckoutsession: Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+2026-04-29T01:40:27.609549Z I createcheckoutsession: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-29T01:40:30.487778610Z N createCheckoutSession: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"coachq@qacchua.com","principalSubject":"user:coachq@qacchua.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"requestAttributes":{},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v2.FunctionService.UpdateFunction","resourceName":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","response":{"url":"https://us-central1-coachq-prod.cloudfunctions.net/createCheckoutSession","@type":"type.googleapis.com/google.cloud.functions.v2.Function","satisfiesPzi":true,"environment":"GEN_2","serviceConfig":{"uri":"https://createcheckoutsession-dbwqrbqk6a-uc.a.run.app","allTrafficOnLatestRevision":true,"maxInstanceCount":20,"secretEnvironmentVariables":[{"secret":"STRIPE_SECRET_KEY","key":"STRIPE_SECRET_KEY","version":"3","projectId":"coachq-prod"}],"ingressSettings":"ALLOW_ALL","serviceAccountEmail":"1031898569985-compute@developer.gserviceaccount.com","revision":"createcheckoutsession-00012-kej","maxInstanceRequestConcurrency":80,"timeoutSeconds":60,"availableMemory":"256Mi","availableCpu":"1"},"buildConfig":{"serviceAccount":"projects/coachq-prod/serviceAccounts/1031898569985-compute@developer.gserviceaccount.com","runtime":"nodejs20","source":{},"automaticUpdatePolicy":{},"entryPoint":"createCheckoutSession","dockerRegistry":"ARTIFACT_REGISTRY","dockerRepository":"projects/coachq-prod/locations/us-central1/repositories/gcf-artifacts"},"createTime":"2026-03-05T20:42:36.259121812Z","labels":{"deployment-tool":"cli-firebase","deployment-callable":"true","firebase-functions-hash":"53ad6b006d91345a48dd0e41b74337ac5ffd97f7"},"name":"projects/coachq-prod/locations/us-central1/functions/createCheckoutSession","state":"ACTIVE","updateTime":"2026-04-29T01:39:47.325387545Z"},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-04-29T01:40:46.638115Z I createcheckoutsession: 
+2026-04-29T01:40:46.749364Z E createcheckoutsession: 
+2026-04-29T01:40:46.861208Z D createcheckoutsession: {"message":"Callable request verification passed","verifications":{"auth":"VALID","app":"MISSING"}}
+2026-04-29T01:40:47.318392Z ? createcheckoutsession: Stripe Checkout Error: StripeInvalidRequestError: No such price: 'price_1Sa5CvLeECyDRlwVlmjTvXqj'; a similar object exists in test mode, but a live mode key was used to make this request.
+    at generateV1Error (/workspace/node_modules/stripe/cjs/Error.js:11:20)
+    at res.toJSON.then.Error_js_1.StripeAPIError.message (/workspace/node_modules/stripe/cjs/RequestSender.js:114:62)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  type: 'StripeInvalidRequestError',
+  raw: {
+    code: 'resource_missing',
+    doc_url: 'https://stripe.com/docs/error-codes/resource-missing',
+    message: "No such price: 'price_1Sa5CvLeECyDRlwVlmjTvXqj'; a similar object exists in test mode, but a live mode key was used to make this request.",
+    param: 'line_items[0][price]',
+    request_log_url: 'https://dashboard.stripe.com/acct_1QsC4yLeECyDRlwV/workbench/logs?object=req_0uZPc8UPccT6Rv',
+    type: 'invalid_request_error',
+    headers: {
+      server: 'nginx',
+      date: 'Wed, 29 Apr 2026 01:40:47 GMT',
+      'content-type': 'application/json',
+      'content-length': '471',
+      connection: 'keep-alive',
+      'access-control-allow-credentials': 'true',
+      'access-control-allow-methods': 'GET, HEAD, PUT, PATCH, POST, DELETE',
+      'access-control-allow-origin': '*',
+      'access-control-expose-headers': 'Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required',
+      'access-control-max-age': '300',
+      'cache-control': 'no-cache, no-store',
+      'content-security-policy': "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src 'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=SbM27z1NL6J0bb-Ke2BGH_ESPyuCS8KKkn-VmfJToj6Mk0gBRXFT0g2E9doO248zfefFQp5RAl5kn-DV",
+      'idempotency-key': 'stripe-node-retry-a89111ef-9362-4abe-ad17-645005c5f2b5',
+      'original-request': 'req_0uZPc8UPccT6Rv',
+      'report-to': '{"group":"csp","max_age":8640,"endpoints":[{"url":"https://q.stripe.com/csp-report-v2?q=SbM27z1NL6J0bb-Ke2BGH_ESPyuCS8KKkn-VmfJToj6Mk0gBRXFT0g2E9doO248zfefFQp5RAl5kn-DV&t=1"}],"include_subdomains":true}',
+      'reporting-endpoints': 'csp="https://q.stripe.com/csp-report-v2?q=SbM27z1NL6J0bb-Ke2BGH_ESPyuCS8KKkn-VmfJToj6Mk0gBRXFT0g2E9doO248zfefFQp5RAl5kn-DV&t=1"',
+      'request-id': 'req_0uZPc8UPccT6Rv',
+      'stripe-version': '2026-01-28.clover',
+      vary: 'Origin',
+      'x-stripe-priority-routing-enabled': 'true',
+      'x-stripe-routing-context-priority-tier': 'livemode-critical',
+      'x-wc': '3c3',
+      'strict-transport-security': 'max-age=63072000; includeSubDomains; preload'
+    },
+    statusCode: 400,
+    requestId: 'req_0uZPc8UPccT6Rv'
+  },
+  rawType: 'invalid_request_error',
+  code: 'resource_missing',
+  doc_url: 'https://stripe.com/docs/error-codes/resource-missing',
+  param: 'line_items[0][price]',
+  detail: undefined,
+  headers: {
+    server: 'nginx',
+    date: 'Wed, 29 Apr 2026 01:40:47 GMT',
+    'content-type': 'application/json',
+    'content-length': '471',
+    connection: 'keep-alive',
+    'access-control-allow-credentials': 'true',
+    'access-control-allow-methods': 'GET, HEAD, PUT, PATCH, POST, DELETE',
+    'access-control-allow-origin': '*',
+    'access-control-expose-headers': 'Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required',
+    'access-control-max-age': '300',
+    'cache-control': 'no-cache, no-store',
+    'content-security-policy': "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src 'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=SbM27z1NL6J0bb-Ke2BGH_ESPyuCS8KKkn-VmfJToj6Mk0gBRXFT0g2E9doO248zfefFQp5RAl5kn-DV",
+    'idempotency-key': 'stripe-node-retry-a89111ef-9362-4abe-ad17-645005c5f2b5',
+    'original-request': 'req_0uZPc8UPccT6Rv',
+    'report-to': '{"group":"csp","max_age":8640,"endpoints":[{"url":"https://q.stripe.com/csp-report-v2?q=SbM27z1NL6J0bb-Ke2BGH_ESPyuCS8KKkn-VmfJToj6Mk0gBRXFT0g2E9doO248zfefFQp5RAl5kn-DV&t=1"}],"include_subdomains":true}',
+    'reporting-endpoints': 'csp="https://q.stripe.com/csp-report-v2?q=SbM27z1NL6J0bb-Ke2BGH_ESPyuCS8KKkn-VmfJToj6Mk0gBRXFT0g2E9doO248zfefFQp5RAl5kn-DV&t=1"',
+    'request-id': 'req_0uZPc8UPccT6Rv',
+    'stripe-version': '2026-01-28.clover',
+    vary: 'Origin',
+    'x-stripe-priority-routing-enabled': 'true',
+    'x-stripe-routing-context-priority-tier': 'livemode-critical',
+    'x-wc': '3c3',
+    'strict-transport-security': 'max-age=63072000; includeSubDomains; preload'
+  },
+  requestId: 'req_0uZPc8UPccT6Rv',
+  statusCode: 400,
+  userMessage: undefined,
+  charge: undefined,
+  decline_code: undefined,
+  payment_intent: undefined,
+  payment_method: undefined,
+  payment_method_type: undefined,
+  setup_intent: undefined,
+  source: undefined
+}
+
+2026-04-29T01:41:06.833014Z I createcheckoutsession: 
+2026-04-29T01:41:06.904701Z E createcheckoutsession: 
+2026-04-29T01:41:06.910318Z D createcheckoutsession: {"message":"Callable request verification passed","verifications":{"auth":"VALID","app":"MISSING"}}
+2026-04-29T01:41:07.062116Z ? createcheckoutsession: Stripe Checkout Error: StripeInvalidRequestError: No such price: 'price_1Sa5CvLeECyDRlwVlmjTvXqj'; a similar object exists in test mode, but a live mode key was used to make this request.
+    at generateV1Error (/workspace/node_modules/stripe/cjs/Error.js:11:20)
+    at res.toJSON.then.Error_js_1.StripeAPIError.message (/workspace/node_modules/stripe/cjs/RequestSender.js:114:62)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  type: 'StripeInvalidRequestError',
+  raw: {
+    code: 'resource_missing',
+    doc_url: 'https://stripe.com/docs/error-codes/resource-missing',
+    message: "No such price: 'price_1Sa5CvLeECyDRlwVlmjTvXqj'; a similar object exists in test mode, but a live mode key was used to make this request.",
+    param: 'line_items[0][price]',
+    request_log_url: 'https://dashboard.stripe.com/acct_1QsC4yLeECyDRlwV/workbench/logs?object=req_a59dBKYLYTEacc',
+    type: 'invalid_request_error',
+    headers: {
+      server: 'nginx',
+      date: 'Wed, 29 Apr 2026 01:41:07 GMT',
+      'content-type': 'application/json',
+      'content-length': '471',
+      connection: 'keep-alive',
+      'access-control-allow-credentials': 'true',
+      'access-control-allow-methods': 'GET, HEAD, PUT, PATCH, POST, DELETE',
+      'access-control-allow-origin': '*',
+      'access-control-expose-headers': 'Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required',
+      'access-control-max-age': '300',
+      'cache-control': 'no-cache, no-store',
+      'content-security-policy': "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src 'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=SbM27z1NL6J0bb-Ke2BGH_ESPyuCS8KKkn-VmfJToj6Mk0gBRXFT0g2E9doO248zfefFQp5RAl5kn-DV",
+      'idempotency-key': 'stripe-node-retry-edba0c47-8cc5-4348-b066-321c44b0ac2a',
+      'original-request': 'req_a59dBKYLYTEacc',
+      'report-to': '{"group":"csp","max_age":8640,"endpoints":[{"url":"https://q.stripe.com/csp-report-v2?q=SbM27z1NL6J0bb-Ke2BGH_ESPyuCS8KKkn-VmfJToj6Mk0gBRXFT0g2E9doO248zfefFQp5RAl5kn-DV&t=1"}],"include_subdomains":true}',
+      'reporting-endpoints': 'csp="https://q.stripe.com/csp-report-v2?q=SbM27z1NL6J0bb-Ke2BGH_ESPyuCS8KKkn-VmfJToj6Mk0gBRXFT0g2E9doO248zfefFQp5RAl5kn-DV&t=1"',
+      'request-id': 'req_a59dBKYLYTEacc',
+      'stripe-version': '2026-01-28.clover',
+      vary: 'Origin',
+      'x-stripe-priority-routing-enabled': 'true',
+      'x-stripe-routing-context-priority-tier': 'livemode-critical',
+      'x-wc': '3c3',
+      'strict-transport-security': 'max-age=63072000; includeSubDomains; preload'
+    },
+    statusCode: 400,
+    requestId: 'req_a59dBKYLYTEacc'
+  },
+  rawType: 'invalid_request_error',
+  code: 'resource_missing',
+  doc_url: 'https://stripe.com/docs/error-codes/resource-missing',
+  param: 'line_items[0][price]',
+  detail: undefined,
+  headers: {
+    server: 'nginx',
+    date: 'Wed, 29 Apr 2026 01:41:07 GMT',
+    'content-type': 'application/json',
+    'content-length': '471',
+    connection: 'keep-alive',
+    'access-control-allow-credentials': 'true',
+    'access-control-allow-methods': 'GET, HEAD, PUT, PATCH, POST, DELETE',
+    'access-control-allow-origin': '*',
+    'access-control-expose-headers': 'Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required',
+    'access-control-max-age': '300',
+    'cache-control': 'no-cache, no-store',
+    'content-security-policy': "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src 'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=SbM27z1NL6J0bb-Ke2BGH_ESPyuCS8KKkn-VmfJToj6Mk0gBRXFT0g2E9doO248zfefFQp5RAl5kn-DV",
+    'idempotency-key': 'stripe-node-retry-edba0c47-8cc5-4348-b066-321c44b0ac2a',
+    'original-request': 'req_a59dBKYLYTEacc',
+    'report-to': '{"group":"csp","max_age":8640,"endpoints":[{"url":"https://q.stripe.com/csp-report-v2?q=SbM27z1NL6J0bb-Ke2BGH_ESPyuCS8KKkn-VmfJToj6Mk0gBRXFT0g2E9doO248zfefFQp5RAl5kn-DV&t=1"}],"include_subdomains":true}',
+    'reporting-endpoints': 'csp="https://q.stripe.com/csp-report-v2?q=SbM27z1NL6J0bb-Ke2BGH_ESPyuCS8KKkn-VmfJToj6Mk0gBRXFT0g2E9doO248zfefFQp5RAl5kn-DV&t=1"',
+    'request-id': 'req_a59dBKYLYTEacc',
+    'stripe-version': '2026-01-28.clover',
+    vary: 'Origin',
+    'x-stripe-priority-routing-enabled': 'true',
+    'x-stripe-routing-context-priority-tier': 'livemode-critical',
+    'x-wc': '3c3',
+    'strict-transport-security': 'max-age=63072000; includeSubDomains; preload'
+  },
+  requestId: 'req_a59dBKYLYTEacc',
+  statusCode: 400,
+  userMessage: undefined,
+  charge: undefined,
+  decline_code: undefined,
+  payment_intent: undefined,
+  payment_method: undefined,
+  payment_method_type: undefined,
+  setup_intent: undefined,
+  source: undefined
+}
+

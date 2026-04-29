@@ -8,8 +8,8 @@ const PricingPage = ({ setView, currentUser }) => {
   const [billingCycle, setBillingCycle] = useState('monthly'); 
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false); 
 
-  const MONTHLY_PRICE_ID = "price_1Sa5CvLeECyDRlwVlmjTvXqj";
-  const YEARLY_PRICE_ID = "price_1ScDyGLeECyDRlwVbkv3REWd";
+  const MONTHLY_PRICE_ID = "price_1SS4i5LeECyDRlwVprrLMef2";
+  const YEARLY_PRICE_ID = "price_1SS4i5LeECyDRlwVr0D9zHfn";
 
   const handleUpgrade = async () => {
     setIsCheckoutLoading(true);

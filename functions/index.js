@@ -3,6 +3,8 @@ const { defineSecret } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore"); 
 const { GoogleAuth } = require("google-auth-library"); 
+const { VertexAI } = require('@google-cloud/vertexai'); // Use the installed SDK
+const GEMINI_VOICE_KEY = defineSecret("GEMINI_VOICE_KEY");
 
 // Initialize Firebase Admin and Database
 initializeApp();
@@ -11,8 +13,66 @@ const db = getFirestore();
 const project = process.env.GCLOUD_PROJECT; 
 const location = "us-central1"; 
 
+// Define secrets
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET"); 
+
+// --- NEW FUNCTION: Generate Feedback (Gemini via Vertex AI) ---
+exports.generateFeedback = onCall({ 
+    cors: true, 
+    timeoutSeconds: 600, // Gives the AI up to 5 minutes to read the transcript
+    memory: "1GiB"       // Bumps the RAM so it doesn't struggle with massive text walls
+}, async (request) => {
+    // Optional: Ensure only logged-in users can evaluate
+    // if (!request.auth) {
+    //     throw new HttpsError('unauthenticated', 'You must be logged in to evaluate transcripts.');
+    // }
+
+    const { prompt, responseSchema } = request.data;
+
+    if (!prompt) {
+        throw new HttpsError('invalid-argument', 'Missing prompt.');
+    }
+
+    try {
+        // 1. Initialize Vertex AI with Application Default Credentials (ADC)
+        const vertexAi = new VertexAI({ project: process.env.GCLOUD_PROJECT, location: "us-central1" });
+
+        // 2. Instantiate the model
+        const generativeModel = vertexAi.getGenerativeModel({
+            model: 'gemini-2.5-pro',
+            generationConfig: {
+                responseMimeType: "application/json",
+                ...(responseSchema && { responseSchema: responseSchema }) // Inject schema if provided
+            }
+        });
+
+        // 3. Make the call
+        const responseStream = await generativeModel.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }]
+        });
+        
+        const result = await responseStream.response;
+
+        // 4. Parse and return the JSON
+        if (result.candidates && result.candidates[0].content?.parts?.[0]?.text) {
+            const jsonText = result.candidates[0].content.parts[0].text;
+            try {
+                return JSON.parse(jsonText); 
+            } catch (e) {
+                console.error("Model returned invalid JSON:", jsonText);
+                throw new HttpsError('internal', 'Model returned invalid JSON formatting.');
+            }
+        } else {
+            throw new HttpsError('internal', 'Invalid response structure from AI.');
+        }
+
+    } catch (error) {
+        console.error("Vertex AI execution error:", error);
+        throw new HttpsError('internal', 'An error occurred while processing the request.');
+    }
+});
+
 
 // --- FUNCTION 1: Generate Avatar ---
 exports.generateAvatar = onCall({ cors: true }, async (request) => {
@@ -84,6 +144,7 @@ exports.createCheckoutSession = onCall({
             line_items: [{ price: priceId, quantity: 1 }],
             success_url: `${baseUrl}/payment-success`,
             cancel_url: `${baseUrl}/pricing`,
+            allow_promotion_codes: true,
         });
 
         return { url: session.url };
@@ -143,7 +204,6 @@ exports.stripeWebhook = onRequest({
                 try {
                     const snap = await db.collection("users").where("stripeCustomerId", "==", succeededInvoice.customer).get();
                     if (!snap.empty) {
-                        // THE FIX: Using for...of ensures the await is respected
                         for (const doc of snap.docs) {
                             await db.collection("users").doc(doc.id).update({
                                 isPremium: true,
@@ -166,7 +226,6 @@ exports.stripeWebhook = onRequest({
             try {
                 const snapshot = await db.collection("users").where("stripeCustomerId", "==", failedInvoice.customer).get();
                 if (!snapshot.empty) {
-                    // THE FIX: Using for...of
                     for (const doc of snapshot.docs) {
                         await db.collection("users").doc(doc.id).update({
                             isPremium: false,
@@ -182,13 +241,12 @@ exports.stripeWebhook = onRequest({
             break;
         }
 
-        // 4. The user actively cancels their subscription (and the billing period ends)
+        // 4. The user actively cancels their subscription
         case "customer.subscription.deleted": {
             const deletedSub = event.data.object;
             try {
                 const delSnapshot = await db.collection("users").where("stripeCustomerId", "==", deletedSub.customer).get();
                 if (!delSnapshot.empty) {
-                    // THE FIX: Using for...of
                     for (const doc of delSnapshot.docs) {
                         await db.collection("users").doc(doc.id).update({
                             isPremium: false,
@@ -208,6 +266,54 @@ exports.stripeWebhook = onRequest({
             console.log(`Unhandled event type: ${event.type}`);
     }
 
-    // Now it is perfectly safe to tell Stripe we are done!
     res.status(200).json({ received: true });
+});
+
+exports.generateSpeech = onCall({ 
+    cors: true,
+    secrets: [GEMINI_VOICE_KEY] 
+}, async (request) => {
+    const { text, gender } = request.data;
+    
+    if (!text) {
+        throw new HttpsError('invalid-argument', 'Text is required');
+    }
+
+    // Assign the correct Gemini voice model
+    const voiceName = gender?.toLowerCase() === 'male' ? 'Charon' : 'Kore';
+    
+    const payload = {
+        contents: [{ parts: [{ text: `Say this naturally: ${text}` }] }],
+        generationConfig: { 
+            responseModalities: ["AUDIO"], 
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } 
+        },
+        model: "gemini-2.5-flash-preview-tts"
+    };
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${GEMINI_VOICE_KEY.value()}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            console.error("Gemini API Error:", response.statusText);
+            throw new HttpsError('internal', 'Failed to generate speech from Gemini API');
+        }
+
+        const result = await response.json();
+        const audioData = result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        
+        if (!audioData) {
+            throw new HttpsError('internal', 'No audio data returned');
+        }
+
+        return { audioData };
+        
+    } catch (error) {
+        console.error("Speech Generation Error:", error);
+        throw new HttpsError('internal', error.message);
+    }
 });
