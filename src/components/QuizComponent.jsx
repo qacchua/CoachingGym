@@ -1,82 +1,84 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { BookOpenCheck, XCircle, Save, Lock, Crown } from 'lucide-react';
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+// --- NEW IMPORTS: Added doc, getDoc, updateDoc, and increment ---
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { db } from '../firebaseConfig';
 import Card from './Card';
 import Button from './Button';
 import IconWrapper from './IconWrapper';
+// --- NEW IMPORT: Gamification Engine ---
+import { calculateSessionXP, calculateNewStreak } from '../utils/gamificationEngine';
 
 // --- DATA (Keep this at the top of the file) ---
 const behaviorsData = [
-    // ... (Your full behaviorsData array here) ...
-     { "behavior": "Demonstrates personal integrity and honesty in interactions with clients, sponsors and relevant stakeholders", "competency": "Demonstrates Ethical Practice" },
-        { "behavior": "Is sensitive to clients’ identity, environment, experiences, values and beliefs", "competency": "Demonstrates Ethical Practice" },
-        { "behavior": "Uses language appropriate and respectful to clients, sponsors and relevant stakeholders", "competency": "Demonstrates Ethical Practice" },
-        { "behavior": "Abides by the ICF Code of Ethics and upholds the ICF Core Values", "competency": "Demonstrates Ethical Practice" },
-        { "behavior": "Maintains confidentiality with client information per stakeholder agreements and pertinent laws", "competency": "Demonstrates Ethical Practice" },
-        { "behavior": "Maintains the distinctions between coaching, consulting, psychotherapy and other support professions", "competency": "Demonstrates Ethical Practice" },
-        { "behavior": "Refers clients to other support professionals, as appropriate", "competency": "Demonstrates Ethical Practice" },
-        { "behavior": "Acknowledges that clients are responsible for their own choices", "competency": "Embodies a Coaching Mindset" },
-        { "behavior": "Engages in ongoing learning and development as a coach, including remaining aware of current coaching best practices and use of technology", "competency": "Embodies a Coaching Mindset" },
-        { "behavior": "Develops an ongoing reflective practice to enhance one’s coaching", "competency": "Embodies a Coaching Mindset" },
-        { "behavior": "Remains aware of and open to the influence of biases, context and culture on self and others", "competency": "Embodies a Coaching Mindset" },
-        { "behavior": "Uses awareness of self and one’s intuition to benefit clients", "competency": "Embodies a Coaching Mindset" },
-        { "behavior": "Develops and maintains the ability to manage one’s emotions", "competency": "Embodies a Coaching Mindset" },
-        { "behavior": "Maintains emotional, physical, and mental well-being in preparation for, throughout, and following each session", "competency": "Embodies a Coaching Mindset" },
-        { "behavior": "Seeks help from outside sources when necessary", "competency": "Embodies a Coaching Mindset" },
-        { "behavior": "Nurtures openness and curiosity in oneself, the client, and the coaching process", "competency": "Embodies a Coaching Mindset" },
-        { "behavior": "Remains aware of the influence of one's thoughts and behaviors on the client and others", "competency": "Embodies a Coaching Mindset" },
-        { "behavior": "Describes one's coaching philosophy and clearly defines what coaching is and is not for potential clients and stakeholders", "competency": "Establishes and Maintains Agreements" },
-        { "behavior": "Reaches agreement about what is and is not appropriate in the relationship, what is and is not being offered, and the responsibilities of the client and relevant stakeholders, including commitment to working toward coaching goals", "competency": "Establishes and Maintains Agreements" },
-        { "behavior": "Reaches agreement about the guidelines and specific parameters of the coaching relationship such as logistics, fees, scheduling and inclusion of others", "competency": "Establishes and Maintains Agreements" },
-        { "behavior": "Partners with the client to establish the overall coaching plan and goals", "competency": "Establishes and Maintains Agreements" },
-        { "behavior": "Partners with the client to determine client–coach fit", "competency": "Establishes and Maintains Agreements" },
-        { "behavior": "Partners with the client to identify or reconfirm what they want to accomplish in the session", "competency": "Establishes and Maintains Agreements" },
-        { "behavior": "Partners with the client to define what the client believes they need to address or resolve in order to achieve what they want to accomplish in the session", "competency": "Establishes and Maintains Agreements" },
-        { "behavior": "Partners with the client to define or reconfirm measures of success for what the client wants to accomplish in the session", "competency": "Establishes and Maintains Agreements" },
-        { "behavior": "Partners with the client to manage the time and focus of the session", "competency": "Establishes and Maintains Agreements" },
-        { "behavior": "Continues coaching in the direction of the client’s desired outcome unless the client indicates otherwise", "competency": "Establishes and Maintains Agreements" },
-        { "behavior": "Partners with the client to close the coaching relationship in a way that that respects the client and the coaching experience", "competency": "Establishes and Maintains Agreements" },
-        { "behavior": "Revisits the coaching agreement when necessary to ensure the coaching approach is meeting the client's needs", "competency": "Establishes and Maintains Agreements" },
-        { "behavior": "Seeks to understand the client within their context which may include their identity, environment, experiences, values and beliefs", "competency": "Cultivates Trust and Safety" },
-        { "behavior": "Shows respect for the client’s identity, perceptions, style and language and adapts one’s coaching to the client", "competency": "Cultivates Trust and Safety" },
-        { "behavior": "Acknowledges and respects the client’s unique talents, insights and work in the coaching process", "competency": "Cultivates Trust and Safety" },
-        { "behavior": "Shows support, empathy and concern for the client", "competency": "Cultivates Trust and Safety" },
-        { "behavior": "Acknowledges and supports the client’s expression of feelings, perceptions, concerns, beliefs and suggestions", "competency": "Cultivates Trust and Safety" },
-        { "behavior": "Demonstrates openness and transparency as a way to display vulnerability and build trust with the client", "competency": "Cultivates Trust and Safety" },
-        { "behavior": "Remains focused, observant, empathetic and responsive to the client", "competency": "Maintains Presence" },
-        { "behavior": "Demonstrates curiosity during the coaching process", "competency": "Maintains Presence" },
-        { "behavior": "Remains aware of what is emerging for self and client in the present moment", "competency": "Maintains Presence" },
-        { "behavior": "Manages one’s emotions to stay present with the client", "competency": "Maintains Presence" },
-        { "behavior": "Demonstrates confidence in working with strong client emotions during the coaching process", "competency": "Maintains Presence" },
-        { "behavior": "Is comfortable working in a space of not knowing", "competency": "Maintains Presence" },
-        { "behavior": "Creates or allows space for silence, pause or reflection", "competency": "Maintains Presence" },
-        { "behavior": "Considers the client’s context,identity, environment, experiences, values and beliefs to enhance understanding of what the client is communicating", "competency": "Listens Actively" },
-        { "behavior": "Reflects or summarizes what the client is communicating to ensure clarity and understanding", "competency": "Listens Actively" },
-        { "behavior": "Recognizes and inquires when there is more to what the client is communicating", "competency": "Listens Actively" },
-        { "behavior": "Notices and explores the client’s non-verbal cues, such as energy shifts, and what is not being said", "competency": "Listens Actively" },
-        { "behavior": "Integrates the client’s words, tone of voice and body language to determine the full meaning of what the client is communicating", "competency": "Listens Actively" },
-        { "behavior": "Notices trends in the client’s behaviors and emotions across sessions to discern themes and patterns", "competency": "Listens Actively" },
-        { "behavior": "Considers client experience when deciding wheat might be most useful", "competency": "Evokes Awareness" },
-        { "behavior": "Challenges the client as a way to evoke awareness or insight", "competency": "Evokes Awareness" },
-        { "behavior": "Asks questions about the client, such as their way of thinking, values, needs, wants and beliefs", "competency": "Evokes Awareness" },
-        { "behavior": "Asks questions that help the client explore beyond current thinking", "competency": "Evokes Awareness" },
-        { "behavior": "Invites the client to share more about their experience in the moment", "competency": "Evokes Awareness" },
-        { "behavior": "Notices what is working to enhance client progress", "competency": "Evokes Awareness" },
-        { "behavior": "Adjusts the coaching approach in response to the client;s needs", "competency": "Evokes Awareness" },
-        { "behavior": "Helps the client identify factors that influence current and future patterns of behavior, thinking or emotion", "competency": "Evokes Awareness" },
-        { "behavior": "Invites the client to generate ideas about how they can move forward and what they are willing or able to do", "competency": "Evokes Awareness" },
-        { "behavior": "Supports the client in reframing perspectives", "competency": "Evokes Awareness" },
-        { "behavior": "Shares observations, knowledge, and feelings, without attachment, that have the potential to create new insights for the client", "competency": "Evokes Awareness" },
-        { "behavior": "Works with the client to integrate new awareness, insight or learning into their worldview and behaviors", "competency": "Facilitates Client Growth" },
-        { "behavior": "Partners with the client to design goals, actions and accountability measures that integrate and expand new learning", "competency": "Facilitates Client Growth" },
-        { "behavior": "Acknowledges and supports client autonomy in the design of goals, actions and methods of accountability", "competency": "Facilitates Client Growth" },
-        { "behavior": "Supports the client in identifying potential results or learning from identified action steps", "competency": "Facilitates Client Growth" },
-        { "behavior": "Invites the client to consider how to move forward, including resources, support and potential barriers", "competency": "Facilitates Client Growth" },
-        { "behavior": "Partners with the client to summarize learning and insight within or between sessions", "competency": "Facilitates Client Growth" },
-        { "behavior": "Partners with the client to integrate learning and sustain progress throughout the coaching agreement", "competency": "Facilitates Client Growth" },
-        { "behavior": "Acknowledges the client’s progress and successes", "competency": "Facilitates Client Growth" },
-        { "behavior": "Partners with the client to close the session", "competency": "Facilitates Client Growth" }
+    { "behavior": "Demonstrates personal integrity and honesty in interactions with clients, sponsors and relevant stakeholders", "competency": "Demonstrates Ethical Practice" },
+    { "behavior": "Is sensitive to clients’ identity, environment, experiences, values and beliefs", "competency": "Demonstrates Ethical Practice" },
+    { "behavior": "Uses language appropriate and respectful to clients, sponsors and relevant stakeholders", "competency": "Demonstrates Ethical Practice" },
+    { "behavior": "Abides by the ICF Code of Ethics and upholds the ICF Core Values", "competency": "Demonstrates Ethical Practice" },
+    { "behavior": "Maintains confidentiality with client information per stakeholder agreements and pertinent laws", "competency": "Demonstrates Ethical Practice" },
+    { "behavior": "Maintains the distinctions between coaching, consulting, psychotherapy and other support professions", "competency": "Demonstrates Ethical Practice" },
+    { "behavior": "Refers clients to other support professionals, as appropriate", "competency": "Demonstrates Ethical Practice" },
+    { "behavior": "Acknowledges that clients are responsible for their own choices", "competency": "Embodies a Coaching Mindset" },
+    { "behavior": "Engages in ongoing learning and development as a coach, including remaining aware of current coaching best practices and use of technology", "competency": "Embodies a Coaching Mindset" },
+    { "behavior": "Develops an ongoing reflective practice to enhance one’s coaching", "competency": "Embodies a Coaching Mindset" },
+    { "behavior": "Remains aware of and open to the influence of biases, context and culture on self and others", "competency": "Embodies a Coaching Mindset" },
+    { "behavior": "Uses awareness of self and one’s intuition to benefit clients", "competency": "Embodies a Coaching Mindset" },
+    { "behavior": "Develops and maintains the ability to manage one’s emotions", "competency": "Embodies a Coaching Mindset" },
+    { "behavior": "Maintains emotional, physical, and mental well-being in preparation for, throughout, and following each session", "competency": "Embodies a Coaching Mindset" },
+    { "behavior": "Seeks help from outside sources when necessary", "competency": "Embodies a Coaching Mindset" },
+    { "behavior": "Nurtures openness and curiosity in oneself, the client, and the coaching process", "competency": "Embodies a Coaching Mindset" },
+    { "behavior": "Remains aware of the influence of one's thoughts and behaviors on the client and others", "competency": "Embodies a Coaching Mindset" },
+    { "behavior": "Describes one's coaching philosophy and clearly defines what coaching is and is not for potential clients and stakeholders", "competency": "Establishes and Maintains Agreements" },
+    { "behavior": "Reaches agreement about what is and is not appropriate in the relationship, what is and is not being offered, and the responsibilities of the client and relevant stakeholders, including commitment to working toward coaching goals", "competency": "Establishes and Maintains Agreements" },
+    { "behavior": "Reaches agreement about the guidelines and specific parameters of the coaching relationship such as logistics, fees, scheduling and inclusion of others", "competency": "Establishes and Maintains Agreements" },
+    { "behavior": "Partners with the client to establish the overall coaching plan and goals", "competency": "Establishes and Maintains Agreements" },
+    { "behavior": "Partners with the client to determine client–coach fit", "competency": "Establishes and Maintains Agreements" },
+    { "behavior": "Partners with the client to identify or reconfirm what they want to accomplish in the session", "competency": "Establishes and Maintains Agreements" },
+    { "behavior": "Partners with the client to define what the client believes they need to address or resolve in order to achieve what they want to accomplish in the session", "competency": "Establishes and Maintains Agreements" },
+    { "behavior": "Partners with the client to define or reconfirm measures of success for what the client wants to accomplish in the session", "competency": "Establishes and Maintains Agreements" },
+    { "behavior": "Partners with the client to manage the time and focus of the session", "competency": "Establishes and Maintains Agreements" },
+    { "behavior": "Continues coaching in the direction of the client’s desired outcome unless the client indicates otherwise", "competency": "Establishes and Maintains Agreements" },
+    { "behavior": "Partners with the client to close the coaching relationship in a way that that respects the client and the coaching experience", "competency": "Establishes and Maintains Agreements" },
+    { "behavior": "Revisits the coaching agreement when necessary to ensure the coaching approach is meeting the client's needs", "competency": "Establishes and Maintains Agreements" },
+    { "behavior": "Seeks to understand the client within their context which may include their identity, environment, experiences, values and beliefs", "competency": "Cultivates Trust and Safety" },
+    { "behavior": "Shows respect for the client’s identity, perceptions, style and language and adapts one’s coaching to the client", "competency": "Cultivates Trust and Safety" },
+    { "behavior": "Acknowledges and respects the client’s unique talents, insights and work in the coaching process", "competency": "Cultivates Trust and Safety" },
+    { "behavior": "Shows support, empathy and concern for the client", "competency": "Cultivates Trust and Safety" },
+    { "behavior": "Acknowledges and supports the client’s expression of feelings, perceptions, concerns, beliefs and suggestions", "competency": "Cultivates Trust and Safety" },
+    { "behavior": "Demonstrates openness and transparency as a way to display vulnerability and build trust with the client", "competency": "Cultivates Trust and Safety" },
+    { "behavior": "Remains focused, observant, empathetic and responsive to the client", "competency": "Maintains Presence" },
+    { "behavior": "Demonstrates curiosity during the coaching process", "competency": "Maintains Presence" },
+    { "behavior": "Remains aware of what is emerging for self and client in the present moment", "competency": "Maintains Presence" },
+    { "behavior": "Manages one’s emotions to stay present with the client", "competency": "Maintains Presence" },
+    { "behavior": "Demonstrates confidence in working with strong client emotions during the coaching process", "competency": "Maintains Presence" },
+    { "behavior": "Is comfortable working in a space of not knowing", "competency": "Maintains Presence" },
+    { "behavior": "Creates or allows space for silence, pause or reflection", "competency": "Maintains Presence" },
+    { "behavior": "Considers the client’s context,identity, environment, experiences, values and beliefs to enhance understanding of what the client is communicating", "competency": "Listens Actively" },
+    { "behavior": "Reflects or summarizes what the client is communicating to ensure clarity and understanding", "competency": "Listens Actively" },
+    { "behavior": "Recognizes and inquires when there is more to what the client is communicating", "competency": "Listens Actively" },
+    { "behavior": "Notices and explores the client’s non-verbal cues, such as energy shifts, and what is not being said", "competency": "Listens Actively" },
+    { "behavior": "Integrates the client’s words, tone of voice and body language to determine the full meaning of what the client is communicating", "competency": "Listens Actively" },
+    { "behavior": "Notices trends in the client’s behaviors and emotions across sessions to discern themes and patterns", "competency": "Listens Actively" },
+    { "behavior": "Considers client experience when deciding wheat might be most useful", "competency": "Evokes Awareness" },
+    { "behavior": "Challenges the client as a way to evoke awareness or insight", "competency": "Evokes Awareness" },
+    { "behavior": "Asks questions about the client, such as their way of thinking, values, needs, wants and beliefs", "competency": "Evokes Awareness" },
+    { "behavior": "Asks questions that help the client explore beyond current thinking", "competency": "Evokes Awareness" },
+    { "behavior": "Invites the client to share more about their experience in the moment", "competency": "Evokes Awareness" },
+    { "behavior": "Notices what is working to enhance client progress", "competency": "Evokes Awareness" },
+    { "behavior": "Adjusts the coaching approach in response to the client;s needs", "competency": "Evokes Awareness" },
+    { "behavior": "Helps the client identify factors that influence current and future patterns of behavior, thinking or emotion", "competency": "Evokes Awareness" },
+    { "behavior": "Invites the client to generate ideas about how they can move forward and what they are willing or able to do", "competency": "Evokes Awareness" },
+    { "behavior": "Supports the client in reframing perspectives", "competency": "Evokes Awareness" },
+    { "behavior": "Shares observations, knowledge, and feelings, without attachment, that have the potential to create new insights for the client", "competency": "Evokes Awareness" },
+    { "behavior": "Works with the client to integrate new awareness, insight or learning into their worldview and behaviors", "competency": "Facilitates Client Growth" },
+    { "behavior": "Partners with the client to design goals, actions and accountability measures that integrate and expand new learning", "competency": "Facilitates Client Growth" },
+    { "behavior": "Acknowledges and supports client autonomy in the design of goals, actions and methods of accountability", "competency": "Facilitates Client Growth" },
+    { "behavior": "Supports the client in identifying potential results or learning from identified action steps", "competency": "Facilitates Client Growth" },
+    { "behavior": "Invites the client to consider how to move forward, including resources, support and potential barriers", "competency": "Facilitates Client Growth" },
+    { "behavior": "Partners with the client to summarize learning and insight within or between sessions", "competency": "Facilitates Client Growth" },
+    { "behavior": "Partners with the client to integrate learning and sustain progress throughout the coaching agreement", "competency": "Facilitates Client Growth" },
+    { "behavior": "Acknowledges the client’s progress and successes", "competency": "Facilitates Client Growth" },
+    { "behavior": "Partners with the client to close the session", "competency": "Facilitates Client Growth" }
 ];
 const competencies = [
     "Demonstrates Ethical Practice", "Embodies a Coaching Mindset", "Establishes and Maintains Agreements", "Cultivates Trust and Safety",
@@ -84,10 +86,9 @@ const competencies = [
 ];
 // --- END DATA ---
 
-// --- Added isPremium to props ---
 const QuizComponent = ({ setView, currentUser, isPremium }) => {
-    const [quizState, setQuizState] = useState('intro'); // intro, selectLength, selectCompetency, active, results
-    const [quizMode, setQuizMode] = useState('general'); // 'general' or 'competency'
+    const [quizState, setQuizState] = useState('intro'); 
+    const [quizMode, setQuizMode] = useState('general'); 
     const [currentCompetency, setCurrentCompetency] = useState(null); 
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -99,7 +100,7 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
     
     // --- NEW STATE FOR SAVING ---
     const [isSaving, setIsSaving] = useState(false);
-    const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error'
+    const [saveStatus, setSaveStatus] = useState(null); 
     
     const resultsRef = useRef(null);
 
@@ -235,7 +236,7 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
                     analysis[q.correctAnswer].correct += 1;
                 }
             });
-        } else { // quizMode === 'competency'
+        } else { 
             questions.forEach((q, index) => {
                 const isCorrect = userAnswers[index] === q.correctAnswer;
                 analysis[currentCompetency].total += 1; 
@@ -266,22 +267,53 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
         }
     };
 
-    // --- NEW: Save to Dashboard Function ---
+    // --- UPDATED: Save to Dashboard Function & Gamification Engine ---
     const handleSaveToDashboard = async () => {
         if (!currentUser) return;
         setIsSaving(true);
         setSaveStatus(null);
 
         try {
+            const percentage = Math.round((score / questions.length) * 100);
+            
+            // 1. Existing Logic: Save to the Dashboard Items subcollection
             await addDoc(collection(db, 'users', currentUser.uid, 'dashboardItems'), {
                 type: 'Quiz',
                 title: quizMode === 'competency' ? `Quiz: ${currentCompetency}` : 'ICF Competency Quiz',
                 score: `${score} / ${questions.length}`,
-                percentage: Math.round((score / questions.length) * 100),
+                percentage: percentage,
                 savedAt: serverTimestamp(),
                 quizMode: quizMode,
                 totalQuestions: questions.length
             });
+
+            // 2. New Logic: Process Gamification Wallet
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            // Pointing directly to the Gamification Wallet initialized in App.jsx
+            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid);
+            
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                const currentStreak = userData.globalStreak || 0;
+                const lastActivityDate = userData.lastActivityDate || null;
+
+                // Calculate engine values
+                const newStreak = calculateNewStreak(lastActivityDate, currentStreak);
+                const earnedXP = calculateSessionXP({ 
+                    type: 'Quiz', 
+                    percentage: percentage, 
+                    totalQuestions: questions.length 
+                }, currentStreak);
+
+                // Increment points safely
+                await updateDoc(userRef, {
+                    "tracks.icf_coach.xp": increment(earnedXP),
+                    "globalStreak": newStreak,
+                    "lastActivityDate": serverTimestamp()
+                });
+            }
+
             setSaveStatus('success');
         } catch (error) {
             console.error("Error saving quiz:", error);
@@ -296,7 +328,6 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
         if (isPremium) {
             return <Button onClick={onClick} variant={variant} className={variant === 'primary' ? 'bg-rose-800 hover:bg-rose-900 text-white font-black uppercase tracking-widest text-xs' : 'border-rose-200 text-rose-800 font-bold uppercase tracking-widest text-xs hover:bg-rose-50'}>{children}</Button>;
         }
-        // Locked State
         return (
             <Button disabled className="bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200 flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-[10px]">
                 <Lock className="w-3 h-3" /> {children} <span className="text-[8px] opacity-70">(Premium)</span>
@@ -317,7 +348,6 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
                         General Competency Quiz
                     </Button>
                     
-                    {/* COMPETENCY QUIZ - PREMIUM ONLY */}
                     <PremiumButton onClick={() => setQuizState('selectCompetency')} variant="secondary">
                         Competency-Specific Quiz
                     </PremiumButton>
@@ -342,12 +372,10 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
                 <h1 className="text-4xl font-black text-slate-900 mt-6 tracking-tighter uppercase">General Quiz</h1>
                 <p className="mt-4 mb-10 text-slate-500 font-medium">How many questions would you like?</p>
                 <div className="flex flex-col gap-4 max-w-sm mx-auto">
-                     {/* FULL QUIZ - AVAILABLE TO ALL */}
                     <Button onClick={() => startQuiz(behaviorsData.length)} variant={isPremium ? "secondary" : "primary"} className={isPremium ? 'border-rose-200 text-rose-800 font-bold uppercase tracking-widest text-xs py-4 hover:bg-rose-50' : 'bg-rose-800 text-white hover:bg-rose-900 font-black uppercase tracking-widest shadow-xl py-4 text-xs'}>
                         All {behaviorsData.length} Questions (Full Challenge)
                     </Button>
                     
-                     {/* 20 & 40 QUESTIONS - PREMIUM ONLY */}
                     <PremiumButton onClick={() => startQuiz(20)}>
                         20 Questions (Quick)
                     </PremiumButton>
@@ -426,7 +454,6 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
                      <div className="mt-8 p-8 bg-rose-50/30 border-t border-rose-50 flex flex-wrap justify-center gap-4">
                         <Button onClick={() => setQuizState('intro')} className="bg-slate-800 text-white font-black uppercase tracking-widest text-[10px] px-6 py-3">Take Another Quiz</Button>
                         
-                        {/* Save to Dashboard Button */}
                         <Button 
                             onClick={handleSaveToDashboard} 
                             disabled={isSaving || saveStatus === 'success'}

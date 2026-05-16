@@ -33,7 +33,7 @@ const Header = ({ currentUser, setView }) => {
           {/* Dashboard Button */}
           <button 
             onClick={() => setView('dashboard')}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all"
+            className="tour-dashboard flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all"
           >
             <LayoutDashboard className="w-4 h-4" /> 
             <span className="hidden lg:inline">My Dashboard</span>
@@ -42,7 +42,7 @@ const Header = ({ currentUser, setView }) => {
           {/* Account Button */}
           <button 
             onClick={() => setView('profile')}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all"
+            className="tour-account flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all"
           >
             <User className="w-4 h-4" /> 
             <span className="hidden lg:inline">My Account</span>

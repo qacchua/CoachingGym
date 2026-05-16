@@ -6,7 +6,8 @@ import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
 import { User, Phone, MapPin, Award, Link as LinkIcon, EyeOff } from 'lucide-react';
 
-const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
+// --- FIX: Changed viewingProfileId to uid to match App.jsx ---
+const PublicProfile = ({ setView, uid, currentUser }) => { 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -14,7 +15,8 @@ const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
   const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
   useEffect(() => {
-    if (!viewingProfileId) {
+    // --- FIX: Check for uid instead ---
+    if (!uid) {
       setView('home'); // Safety check
       return;
     }
@@ -22,9 +24,8 @@ const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
     const fetchProfile = async () => {
       setLoading(true);
       
-      // --- FIX: Point to the new secure 'artifacts' path ---
-      // WAS: const userRef = doc(db, "users", viewingProfileId);
-      const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', viewingProfileId);
+      // --- FIX: Use uid in the database path ---
+      const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', uid);
       
       try {
         const userSnap = await getDoc(userRef);
@@ -43,12 +44,11 @@ const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
     };
 
     fetchProfile();
-  }, [viewingProfileId, setView, appId]);
+  }, [uid, setView, appId]); // --- FIX: Updated dependency array ---
 
   // --- Determine where the "Back" button should go ---
-  const isViewingSelf = currentUser && viewingProfileId === currentUser.uid;
-  const backView = isViewingSelf ? 'profile' : 'chat';
-  const backButtonText = isViewingSelf ? 'Back to My Account' : 'Back to Chat';
+    const backView = 'profile';
+    const backButtonText = 'Back to My Account';
 
 
   if (loading) {
@@ -71,7 +71,7 @@ const PublicProfile = ({ setView, viewingProfileId, currentUser }) => {
   const isVisible = (key) => profile.publicVisibility && profile.publicVisibility[key];
 
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card className="max-w-2xl mx-auto fade-in">
       <div className="flex justify-between items-start mb-6">
         <div>
           {isVisible('showPhoto') && profile.profilePhotoUrl && (

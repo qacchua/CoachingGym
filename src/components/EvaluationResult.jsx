@@ -1,14 +1,20 @@
 import React, { useRef, useState } from 'react';
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"; 
+// --- NEW IMPORTS: Added doc, getDoc, updateDoc, and increment ---
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc, increment } from "firebase/firestore"; 
 import { db } from '../firebaseConfig';
 import { Download, Save, ArrowLeft } from 'lucide-react';
 import Button from './Button';
 import EvaluationReport from './EvaluationReport';
+// --- NEW IMPORT: Gamification Engine ---
+import { calculateSessionXP, calculateNewStreak } from '../utils/gamificationEngine';
 
 const EvaluationResult = ({ result, setView, currentUser }) => {
     const reportRef = useRef();
     const [isSaving, setIsSaving] = useState(false);
-    const [saveStatus, setSaveStatus] = useState(null);
+    
+    // --- UPDATED: Anti-Cheat Initial State ---
+    // If the dashboard passed us the historical flag, the button starts out locked.
+    const [saveStatus, setSaveStatus] = useState(result?.isHistorical ? 'success' : null);
 
     const handleDownload = async () => {
         try {
@@ -24,18 +30,61 @@ const EvaluationResult = ({ result, setView, currentUser }) => {
         } catch (e) { alert("PDF Error."); }
     };
 
+    // --- UPDATED: Save to Dashboard Function & Gamification Engine ---
     const handleSaveToDashboard = async () => {
-        if (!currentUser) return;
+        // DOUBLE ANTI-CHEAT: Kills the function if they somehow click it anyway
+        if (!currentUser || saveStatus === 'success') return; 
+        
         setIsSaving(true);
         try {
-          await addDoc(collection(db, 'users', currentUser.uid, 'dashboardItems'), {
-            type: 'Evaluation Report',
-            title: `Session Analysis - ${new Date().toLocaleDateString()}`,
-            savedAt: serverTimestamp(),
-            data: result 
-          });
-          setSaveStatus('success');
-        } catch (e) { setSaveStatus('error'); } finally { setIsSaving(false); }
+            // 1. Map the AI result for the Gamification Engine
+            const coachTalkTime = result.speakerAnalysis?.coachPercentage || 0;
+            const competencyRatings = result.evaluation ? result.evaluation.map(item => item.rating) : [];
+            const reportData = { type: 'Simulation', talkTime: coachTalkTime, competencies: competencyRatings };
+
+            // 2. Fetch User Data to calculate points FIRST
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid);
+            const userSnap = await getDoc(userRef);
+            
+            let earnedXP = 0;
+            let newStreak = 0;
+
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                const currentStreak = userData.globalStreak || 0;
+                const lastActivityDate = userData.lastActivityDate || null;
+                
+                // Calculate engine values
+                newStreak = calculateNewStreak(lastActivityDate, currentStreak);
+                earnedXP = calculateSessionXP(reportData, currentStreak);
+            }
+
+            // 3. Save the report receipt (NOW INCLUDES THE EARNED XP)
+            await addDoc(collection(db, 'users', currentUser.uid, 'dashboardItems'), {
+                type: 'Evaluation Report',
+                title: `Session Analysis - ${new Date().toLocaleDateString()}`,
+                savedAt: serverTimestamp(),
+                data: result,
+                earnedXP: earnedXP 
+            });
+
+            // 4. Deposit the points into the Gamification Wallet
+            if (userSnap.exists()) {
+                await updateDoc(userRef, {
+                    "tracks.icf_coach.xp": increment(earnedXP),
+                    "globalStreak": newStreak,
+                    "lastActivityDate": serverTimestamp()
+                });
+            }
+
+            setSaveStatus('success');
+        } catch (e) { 
+            console.error("Error saving report:", e);
+            setSaveStatus('error'); 
+        } finally { 
+            setIsSaving(false); 
+        }
     };
 
     return (
@@ -47,10 +96,20 @@ const EvaluationResult = ({ result, setView, currentUser }) => {
                 </div>
                 
                 <div className="flex gap-2">
-                    <Button onClick={() => setView('home')} variant="secondary" className="border-rose-100 text-rose-800"><ArrowLeft className="w-4 h-4 mr-2" /> Home</Button>
-                    <Button onClick={handleDownload} variant="secondary" className="border-rose-100 text-rose-800"><Download className="w-4 h-4 mr-2" /> PDF</Button>
-                    <Button onClick={handleSaveToDashboard} className="bg-rose-800 hover:bg-rose-900 text-white font-black uppercase tracking-widest text-[10px] px-6">
-                        {isSaving ? 'Saving...' : saveStatus === 'success' ? 'Saved' : 'Save Report'}
+                    <Button onClick={() => setView('home')} variant="secondary" className="border-rose-100 text-rose-800">
+                        <ArrowLeft className="w-4 h-4 mr-2" /> Home
+                    </Button>
+                    <Button onClick={handleDownload} variant="secondary" className="border-rose-100 text-rose-800">
+                        <Download className="w-4 h-4 mr-2" /> PDF
+                    </Button>
+                    
+                    {/* ANTI-CHEAT UI: Disabled when saving or already saved */}
+                    <Button 
+                        onClick={handleSaveToDashboard} 
+                        disabled={isSaving || saveStatus === 'success'}
+                        className={saveStatus === 'success' ? "bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-[10px] px-6" : "bg-rose-800 hover:bg-rose-900 text-white font-black uppercase tracking-widest text-[10px] px-6"}
+                    >
+                        {isSaving ? 'Saving...' : saveStatus === 'success' ? 'Saved to Dashboard' : 'Save Report'}
                     </Button>
                 </div>
             </div>

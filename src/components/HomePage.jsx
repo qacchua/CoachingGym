@@ -1,8 +1,35 @@
-import React from 'react';
-import { Bot, Mic, FileText, Scale, Users, CheckSquare, Lock, Crown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bot, Mic, FileText, Scale, Users, CheckSquare, Lock, Crown, Trophy, Flame, Target } from 'lucide-react';
 import Card from './Card';
+import FeatureTour from './FeatureTour';
+// --- NEW IMPORTS: Firebase and Gamification Engine ---
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from '../firebaseConfig';
+import { getUserStatus, getNextTierRequirement } from '../utils/gamificationEngine';
 
 const HomePage = ({ setView, currentUser, isPremium }) => {
+    // --- NEW STATE: Gamification Wallet ---
+    const [wallet, setWallet] = useState({ xp: 0, streak: 0 });
+
+    // --- NEW EFFECT: Real-time listener for XP and Streak ---
+    useEffect(() => {
+        if (!currentUser) return;
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid);
+        
+        const unsubscribe = onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setWallet({
+                    xp: data.tracks?.icf_coach?.xp || 0,
+                    streak: data.globalStreak || 0
+                });
+            }
+        });
+
+        return () => unsubscribe();
+    }, [currentUser]);
 
     // Centralized array of your Studio tools
     const studioFeatures = [
@@ -68,10 +95,17 @@ const HomePage = ({ setView, currentUser, isPremium }) => {
         }
     ];
 
+    // --- NEW MATH: Calculate display values ---
+    const currentXP = wallet.xp;
+    const currentStreak = wallet.streak;
+    const statusName = getUserStatus(currentXP);
+    const xpToNext = getNextTierRequirement(currentXP);
+
     return (
         <div className="max-w-6xl mx-auto py-8 fade-in">
-            <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-rose-50 pb-8">
-                {/* LEFT SIDE: Added flex-1 so it takes up available space evenly */}
+            <FeatureTour currentUser={currentUser} />
+
+            <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-rose-50 pb-8">
                 <div className="text-center md:text-left flex-1">
                     <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase mb-2">
                         Welcome back, {currentUser?.displayName?.split(' ')[0] || 'Coach'}
@@ -79,19 +113,17 @@ const HomePage = ({ setView, currentUser, isPremium }) => {
                     <p className="text-rose-800 font-medium">Select a studio tool to begin your practice.</p>
                 </div>
 
-                {/* RIGHT SIDE: Upgrade CTA */}
                 {!isPremium && (
                     <div className="flex-shrink-0 flex flex-col items-center md:items-end">
                         <button 
                             onClick={() => setView('dashboard')} 
-                            className="group relative flex items-center gap-3 bg-purple-800 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-rose-900 transition-all shadow-xl shadow-rose-900/20 overflow-hidden transform active:scale-95"
+                            className="tour-dashboard group relative flex items-center gap-3 bg-purple-800 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-rose-900 transition-all shadow-xl shadow-rose-900/20 overflow-hidden transform active:scale-95"
                         >
                             <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                             <Crown className="w-5 h-5 text-gold-200" />
                             Unlock All Features
                         </button>
                         
-                        {/* THE FIX: Added max-w-sm to force the long text to wrap cleanly under the button */}
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-3 text-center md:text-right max-w-sm leading-relaxed">
                             Get unlimited access to AI simulations, transcript evaluations, ethical dilemmas and all new features
                         </p>
@@ -99,16 +131,56 @@ const HomePage = ({ setView, currentUser, isPremium }) => {
                 )}
             </header>
 
+            {/* --- NEW: GAMIFICATION HUD --- */}
+            <div className="flex flex-wrap gap-4 mb-10">
+                
+                <div className="bg-rose-50 text-rose-900 px-5 py-3 rounded-2xl flex items-center gap-4 shadow-sm border border-rose-100">
+                    <Flame className={`w-6 h-6 ${currentStreak > 0 ? 'text-rose-600 animate-pulse' : 'text-slate-400'}`} />
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-rose-400">Active Streak</p>
+                        <p className="text-base font-black uppercase tracking-tight">{currentStreak} Days</p>
+                    </div>
+                </div>
+
+                <div className="bg-slate-900 text-white px-5 py-3 rounded-2xl flex items-center gap-4 shadow-lg border border-slate-800">
+                    <Trophy className="w-6 h-6 text-rose-400" />
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Current Rank</p>
+                        <p className="text-base font-black uppercase tracking-tight">{statusName} <span className="text-slate-500 font-medium tracking-normal text-xs ml-1">({currentXP} XP)</span></p>
+                    </div>
+                </div>
+
+
+                {xpToNext > 0 && (
+                    <div className="bg-white text-slate-700 px-5 py-3 rounded-2xl flex items-center gap-4 shadow-sm border border-slate-100 flex-1 md:flex-none">
+                        <Target className="w-6 h-6 text-emerald-500" />
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Next Milestone</p>
+                            <p className="text-sm font-bold">{xpToNext} XP needed to level up</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {studioFeatures.map((feature) => {
-                    // Determine if this specific card should be locked for this user
                     const isLocked = !isPremium && feature.premiumOnly;
+                    
+                    // --- UPDATED: Mapped all tour classes securely ---
+                    let tourClass = '';
+                    if (feature.id === 'community') tourClass = 'tour-community';
+                    if (feature.id === 'quiz') tourClass = 'tour-quiz';
+                    if (feature.id === 'simulation') tourClass = 'tour-simulation';
+                    if (feature.id === 'voiceSimulation') tourClass = 'tour-voice-studio';
+                    if (feature.id === 'transcript') tourClass = 'tour-transcript';
+                    if (feature.id === 'dilemma') tourClass = 'tour-dilemmas';
 
                     return (
                         <Card 
                             key={feature.id}
                             onClick={() => setView(feature.view)}
                             className={`
+                                ${tourClass}
                                 relative cursor-pointer transition-all duration-300 border-2
                                 ${isLocked 
                                     ? 'opacity-70 grayscale-[30%] border-slate-200 bg-slate-50 hover:opacity-100 hover:grayscale-0' 
@@ -116,7 +188,6 @@ const HomePage = ({ setView, currentUser, isPremium }) => {
                                 }
                             `}
                         >
-                            {/* The Lock/Crown Badge */}
                             {isLocked && (
                                 <div className="absolute top-4 right-4 flex items-center gap-1 bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
                                     <Lock size={12} />

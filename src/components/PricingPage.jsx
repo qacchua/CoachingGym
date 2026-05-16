@@ -8,17 +8,23 @@ const PricingPage = ({ setView, currentUser }) => {
   const [billingCycle, setBillingCycle] = useState('monthly'); 
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false); 
 
-  const MONTHLY_PRICE_ID = "price_1SS4i5LeECyDRlwVprrLMef2";
-  const YEARLY_PRICE_ID = "price_1SS4i5LeECyDRlwVr0D9zHfn";
-
   const handleUpgrade = async () => {
     setIsCheckoutLoading(true);
     
     try {
-      const priceId = billingCycle === 'monthly' ? MONTHLY_PRICE_ID : YEARLY_PRICE_ID;
+      // Dynamically pull the correct Price ID from Vite's environment variables
+      const priceId = billingCycle === 'monthly' 
+        ? import.meta.env.VITE_STRIPE_PRICE_ID_MONTHLY 
+        : import.meta.env.VITE_STRIPE_PRICE_ID_ANNUAL;
+
+      // Add a quick safety check to prevent a crash if the .env file is missing
+      if (!priceId) {
+        throw new Error(`Missing Stripe Price ID for ${billingCycle} plan in environment variables.`);
+      }
+
       await startStripeCheckout(priceId);
     } catch (error) {
-      console.error("Failed to start checkout", error);
+      console.error("Failed to start checkout:", error);
       alert("Unable to reach the payment system. Please try again later.");
     } finally {
       setIsCheckoutLoading(false); 

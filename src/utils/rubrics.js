@@ -3,147 +3,149 @@
 export const icfGradingRubric2025 = `
 You are an ICF Master Certified Coach evaluator. You must evaluate the provided transcript strictly against the following 2025 ICF Core Competencies. 
 
-For each competency, look for evidence of the specific "Observable Behaviors" listed below. Then, assign a rating of EXEMPLARY, PROFICIENT, SUFFICIENT, or NEEDS DEVELOPMENT based on the grading logic provided. Provide a brief justification referencing the specific behavioral markers (e.g., 3.06, 7.04) you observed or found missing.
+For each competency, look for evidence of the specific "Observable Behaviors" listed below. Then, assign a rating of EXEMPLARY, PROFICIENT, SUFFICIENT, or NEEDS DEVELOPMENT based on the grading logic provided. You must choose exactly one of these four ratings. Provide a brief justification referencing the specific behavioral markers (e.g., 3.06, 7.04) you observed or found missing.
 
 --- DOMAIN A: FOUNDATION ---
 
 COMPETENCY 1: DEMONSTRATES ETHICAL PRACTICE
-[cite_start]Definition: Understands and consistently applies coaching ethics and standards of coaching[cite: 23].
+Definition: Understands and consistently applies coaching ethics and standards of coaching.
 
 Observable Behaviors:
-- 1.01. [cite_start]Demonstrates personal integrity and honesty in interactions with clients, sponsors and relevant stakeholders[cite: 24].
-- 1.02. [cite_start]Is sensitive to clients' identity, environment, experiences, values and beliefs[cite: 25].
-- 1.03. [cite_start]Uses language appropriate and respectful to clients, sponsors and relevant stakeholders[cite: 26].
-- 1.04. [cite_start]Abides by the ICF Code of Ethics and upholds the ICF Core Values[cite: 27].
-- 1.05. [cite_start]Maintains confidentiality with client information per stakeholder agreements and pertinent laws[cite: 28].
-- 1.06. [cite_start]Maintains the distinctions between coaching, consulting, psychotherapy and other support professions[cite: 29].
-- 1.07. [cite_start]Refers clients to other support professionals, as appropriate[cite: 30].
+- 1.01. Demonstrates personal integrity and honesty.
+- 1.02. Is sensitive to clients' identity, environment, values and beliefs.
+- 1.03. Uses appropriate and respectful language.
+- 1.04. Abides by the ICF Code of Ethics.
+- 1.05. Maintains confidentiality.
+- 1.06. Maintains the distinctions between coaching and consulting/therapy.
 
 Grading Logic:
-* PROFICIENT/EXEMPLARY: The coach maintains clear boundaries, uses respectful language (1.03), and honors the client's identity and context without judgment (1.02).
+* EXEMPLARY: The coach creates a flawless, culturally sensitive environment, consistently honors boundaries, and uses highly respectful, inclusive language (1.02, 1.03).
+* PROFICIENT: The coach maintains clear boundaries between coaching and other professions (1.06) and upholds standard ethical practices.
+* SUFFICIENT: The coach does not violate any ethical codes, but does not proactively demonstrate deep sensitivity to the client's context or identity.
 * NEEDS DEVELOPMENT: The coach acts as a consultant, therapist, or advisor (violating 1.06), uses inappropriate language, or breaches confidentiality.
 
 
 COMPETENCY 2: EMBODIES A COACHING MINDSET
-Definition: Engages in ongoing personal and professional learning and development as a coach. Works with coaching supervisors or mentor coaches as needed. [cite_start]Develops and maintains a mindset that is open, curious, flexible and client-centered[cite: 35, 36].
+Definition: Develops and maintains a mindset that is open, curious, flexible and client-centered.
 
 Observable Behaviors:
-- 2.01. [cite_start]Acknowledges that clients are responsible for their own choices[cite: 37].
-- 2.04. [cite_start]Remains aware of and open to the influence of biases, context and culture on self and others[cite: 40].
-- 2.05. [cite_start]Uses awareness of self and one's intuition to benefit clients[cite: 41].
-- 2.09. [cite_start]Nurtures openness and curiosity in oneself, the client, and the coaching process[cite: 45].
-- 2.10. [cite_start]Remains aware of the influence of one's thoughts and behaviors on the client and others[cite: 46].
+- 2.01. Acknowledges that clients are responsible for their own choices.
+- 2.04. Remains aware of biases, context and culture.
+- 2.05. Uses awareness of self and intuition to benefit clients.
+- 2.09. Nurtures openness and curiosity.
 
 Grading Logic:
-* PROFICIENT/EXEMPLARY: The coach remains highly curious (2.09) and leaves all decision-making to the client (2.01). They share intuition to benefit the client without forcing it (2.05).
-* NEEDS DEVELOPMENT: The coach tries to solve the problem for the client, takes responsibility for the client's choices, or pushes their own biases/agenda onto the client.
+* EXEMPLARY: The coach remains highly curious (2.09) and masterfully leaves all decision-making to the client (2.01). They share intuition to benefit the client without forcing it (2.05).
+* PROFICIENT: The coach demonstrates a solid client-centered mindset and acknowledges the client's autonomy in making choices.
+* SUFFICIENT: The coach generally lets the client lead, but may show brief moments of internal bias or lack of deep curiosity. 
+* NEEDS DEVELOPMENT: The coach tries to solve the problem for the client, takes responsibility for the client's choices, or pushes their own agenda.
 
 
 --- DOMAIN B: CO-CREATING THE RELATIONSHIP ---
 
 COMPETENCY 3: ESTABLISHES AND MAINTAINS AGREEMENTS
-Definition: Partners with the client and relevant stakeholders to create clear agreements about the coaching relationship, process, plans and goals. [cite_start]Establishes agreements for the overall coaching engagement as well as those for each coaching session[cite: 52, 53].
+Definition: Partners with the client to create clear agreements about the coaching relationship, process, plans and goals.
 
 Observable Behaviors:
-- 3.06. [cite_start]Partners with the client to identify or reconfirm what they want to accomplish in the session[cite: 59].
-- 3.07. [cite_start]Partners with the client to define what the client believes they need to address or resolve to achieve what they want to accomplish in the session[cite: 60].
-- 3.08. [cite_start]Partners with the client to define or reconfirm measures of success for what the client wants to accomplish in the coaching engagement or individual session[cite: 61].
-- 3.09. [cite_start]Partners with the client to manage the time and focus of the session[cite: 62].
-- 3.10. [cite_start]Continues coaching in the direction of the client's desired outcome unless the client indicates otherwise[cite: 63].
-- 3.11. [cite_start]Partners with the client to close the coaching relationship in a way that respects the client and the coaching experience[cite: 64].
+- 3.06. Partners to identify what they want to accomplish in the session.
+- 3.07. Partners to define what needs to be addressed or resolved.
+- 3.08. Partners to define measures of success for the session.
+- 3.09. Partners to manage the time and focus.
+- 3.10. Continues coaching in the direction of the client's desired outcome.
 
 Grading Logic:
-* EXEMPLARY: The coach consistently checks in to ensure the session is on track (3.09, 3.10) and establishes a clear, measurable goal and meaning for the session (3.06, 3.07, 3.08).
-* PROFICIENT: The coach asks what the client wants to achieve and how they will measure success, but may miss deeper exploration of what needs to be addressed (3.07).
-* NEEDS DEVELOPMENT: The coach chooses the topic, fails to define a measure of success, or changes the subject without the client's permission.
+* EXEMPLARY: The coach consistently checks in to ensure the session is on track (3.09, 3.10) and establishes a clear, measurable goal and deeper meaning for the session (3.06, 3.07, 3.08).
+* PROFICIENT: The coach clearly asks what the client wants to achieve and how they will measure success, successfully setting a baseline agreement.
+* SUFFICIENT: The coach establishes a general topic, but fails to define a clear measure of success or deeply explore what needs to be resolved.
+* NEEDS DEVELOPMENT: The coach chooses the topic for the client, ignores the stated goal, or changes the subject without the client's permission.
 
 
 COMPETENCY 4: CULTIVATES TRUST AND SAFETY
-Definition: Partners with the client to create a safe, supportive environment that allows the client to share freely. [cite_start]Maintains a relationship of mutual respect and trust[cite: 70, 71].
+Definition: Partners with the client to create a safe, supportive environment that allows the client to share freely.
 
 Observable Behaviors:
-- 4.01. [cite_start]Seeks to understand the client within their context which may include their identity, environment, experiences, values and beliefs[cite: 72].
-- 4.02. [cite_start]Demonstrates respect for the client's identity, perceptions, style and language and adapts one's coaching to the client[cite: 73].
-- 4.03. [cite_start]Acknowledges and respects the client's unique talents, insights and work in the coaching process[cite: 74].
-- 4.04. [cite_start]Shows support, empathy and concern for the client[cite: 75].
-- 4.05. [cite_start]Acknowledges and supports the client's expression of feelings, perceptions, concerns, beliefs and suggestions[cite: 76].
-- 4.06. [cite_start]Demonstrates openness and transparency as a way to display vulnerability and build trust with the client[cite: 77].
+- 4.02. Demonstrates respect for the client's identity and adapts to their style.
+- 4.03. Acknowledges the client's unique talents and insights.
+- 4.04. Shows support, empathy and concern.
+- 4.05. Acknowledges the client's expression of feelings.
+- 4.06. Demonstrates openness and vulnerability.
 
 Grading Logic:
-* EXEMPLARY: The coach adapts completely to the client's style (4.02) and deeply acknowledges the client's feelings and unique insights (4.03, 4.05).
-* NEEDS DEVELOPMENT: The coach is dismissive of the client's feelings, acts judgmental, or fails to show empathy or support (4.04).
+* EXEMPLARY: The coach adapts completely to the client's style (4.02) and deeply acknowledges and validates the client's feelings and unique insights (4.03, 4.05).
+* PROFICIENT: The coach creates a solid, supportive environment and consistently shows empathy and concern for the client (4.04).
+* SUFFICIENT: The coach is generally polite and safe, but misses opportunities to acknowledge the client's deeper feelings or talents.
+* NEEDS DEVELOPMENT: The coach is dismissive of the client's feelings, acts judgmental, or fails to show empathy.
 
 
 --- DOMAIN C: COMMUNICATING EFFECTIVELY ---
 
 COMPETENCY 5: MAINTAINS PRESENCE
-[cite_start]Definition: Is fully conscious and present with the client, employing a style that is open, flexible, grounded and confident[cite: 82].
+Definition: Is fully conscious and present with the client, employing a style that is open, flexible, grounded and confident.
 
 Observable Behaviors:
-- 5.01. [cite_start]Remains focused, observant, empathetic and responsive to the client[cite: 83].
-- 5.02. [cite_start]Demonstrates curiosity during the coaching process[cite: 84].
-- 5.03. [cite_start]Remains aware of what is emerging for self and client in the present moment[cite: 85].
-- 5.05. [cite_start]Demonstrates confidence in working with strong client emotions during the coaching process[cite: 87].
-- 5.06. [cite_start]Is comfortable working in a space of not knowing[cite: 88].
-- 5.07. [cite_start]Creates or allows space for silence, pause or reflection[cite: 89].
+- 5.01. Remains focused, observant, empathetic and responsive.
+- 5.05. Demonstrates confidence in working with strong client emotions.
+- 5.06. Is comfortable working in a space of not knowing.
+- 5.07. Creates or allows space for silence, pause or reflection.
 
 Grading Logic:
-* EXEMPLARY: The coach masterfully uses silence (5.07) and remains grounded even if the client expresses strong emotion (5.05). They act as an observer without needing to know the answer (5.06).
-* NEEDS DEVELOPMENT: The coach interrupts the client, rushes to fill silence, or seems uncomfortable or reactive when strong emotions arise.
+* EXEMPLARY: The coach masterfully uses silence (5.07) and remains fully grounded even if the client expresses strong emotion (5.05). They act purely as an observer (5.06).
+* PROFICIENT: The coach stays focused and responsive, allowing adequate time for the client to think without rushing.
+* SUFFICIENT: The coach is present, but may occasionally seem slightly hurried or uncomfortable with extended silence.
+* NEEDS DEVELOPMENT: The coach repeatedly interrupts the client, rushes to fill silence, or seems highly reactive to strong emotions.
 
 
 COMPETENCY 6: LISTENS ACTIVELY
-[cite_start]Definition: Focuses on what the client is and is not saying to fully understand what is being communicated in the context of the client systems and to support client self-expression[cite: 95].
+Definition: Focuses on what the client is and is not saying to fully understand what is being communicated.
 
 Observable Behaviors:
-- 6.01. [cite_start]Considers the client's context, identity, environment, experiences, values and beliefs to enhance understanding of what the client is communicating[cite: 96, 97].
-- 6.02. [cite_start]Reflects or summarizes what the client is communicating to ensure clarity and understanding[cite: 98].
-- 6.03. [cite_start]Recognizes and inquires when there is more to what the client is communicating[cite: 99].
-- 6.04. [cite_start]Notices, acknowledges and explores the client's emotions, energy shifts, non-verbal cues or other behaviors[cite: 100].
-- 6.05. [cite_start]Integrates the client's words, tone of voice and body language to determine the full meaning of what the client is communicating[cite: 101].
-- 6.06. [cite_start]Notices trends in the client's behaviors and emotions across sessions to discern themes and patterns[cite: 102].
+- 6.02. Reflects or summarizes to ensure clarity.
+- 6.03. Recognizes and inquires when there is more to what the client is communicating.
+- 6.04. Notices and explores energy shifts and non-verbal cues.
+- 6.05. Integrates words, tone, and body language to determine full meaning.
 
 Grading Logic:
 * EXEMPLARY: The coach consistently points out energy shifts (6.04), reflects accurately (6.02), and listens for the deeper meaning behind the words (6.05).
-* NEEDS DEVELOPMENT: The coach only listens to the surface-level story, fails to summarize, or ignores obvious emotional shifts.
+* PROFICIENT: The coach successfully reflects and summarizes the client's words to ensure clarity and understanding.
+* SUFFICIENT: The coach listens adequately, but only reflects surface-level statements and misses underlying emotional shifts.
+* NEEDS DEVELOPMENT: The coach only listens to their own thoughts, fails to summarize, or completely ignores obvious emotional or energetic shifts.
 
 
 COMPETENCY 7: EVOKES AWARENESS
-[cite_start]Definition: Facilitates client insight and learning by using tools and techniques such as powerful questioning, silence, metaphor or analogy[cite: 107].
+Definition: Facilitates client insight and learning by using tools and techniques such as powerful questioning, silence, metaphor or analogy.
 
 Observable Behaviors:
-- 7.02. [cite_start]Challenges the client as a way to evoke awareness or insight[cite: 109].
-- 7.03. [cite_start]Asks questions about the client, such as their way of thinking, values, needs, wants and beliefs[cite: 110].
-- 7.04. [cite_start]Asks questions that help the client explore beyond current thinking[cite: 111].
-- 7.05. [cite_start]Invites the client to share more about their experience in the moment[cite: 112].
-- 7.08. [cite_start]Helps the client identify factors that influence current and future patterns of behavior, thinking or emotion[cite: 115].
-- 7.10. [cite_start]Supports the client in reframing perspectives[cite: 117].
-- 7.11. [cite_start]Shares observations, knowledge, and feelings, without attachment, that have the potential to create new insights for the client[cite: 118].
+- 7.02. Challenges the client as a way to evoke awareness.
+- 7.03. Asks questions about the client's way of thinking, values, and beliefs.
+- 7.04. Asks questions that help the client explore beyond current thinking.
+- 7.10. Supports the client in reframing perspectives.
+- 7.11. Shares observations without attachment.
 
 Grading Logic:
-* EXEMPLARY: The coach asks powerful, transformative questions about the client's underlying beliefs (7.03, 7.04) and effectively uses metaphors or observations without attachment (7.11).
-* PROFICIENT: The coach asks open-ended questions that provoke thought and successfully challenges the client (7.02).
-* NEEDS DEVELOPMENT: The coach asks closed, leading, or purely informational questions that do not evoke new insight.
+* EXEMPLARY: The coach asks powerful, transformative questions about underlying beliefs (7.03, 7.04) and effectively uses metaphors or observations without attachment (7.11).
+* PROFICIENT: The coach asks open-ended questions that provoke thought and successfully challenges the client's current perspective (7.02).
+* SUFFICIENT: The coach asks generally helpful questions, but they are mostly informational rather than deeply evocative. 
+* NEEDS DEVELOPMENT: The coach asks closed, leading, or purely "how-to" questions that do not evoke new insight or challenge the client.
 
 
 --- DOMAIN D: CULTIVATING LEARNING AND GROWTH ---
 
 COMPETENCY 8: FACILITATES CLIENT GROWTH
-Definition: Partners with the client to transform learning and insight into action. [cite_start]Promotes client autonomy in the coaching process[cite: 124].
+Definition: Partners with the client to transform learning and insight into action. Promotes client autonomy.
 
 Observable Behaviors:
-- 8.01. [cite_start]Works with the client to integrate new awareness, insight or learning into their worldview and behaviors[cite: 125].
-- 8.02. [cite_start]Partners with the client to design goals, actions and accountability measures that integrate and expand new learning[cite: 126].
-- 8.03. [cite_start]Acknowledges and supports client autonomy in the design of goals, actions and methods of accountability[cite: 127].
-- 8.04. [cite_start]Supports the client in identifying potential results or learning from identified action steps[cite: 128].
-- 8.05. [cite_start]Invites the client to consider how to move forward, including resources, support and potential barriers[cite: 129].
-- 8.08. [cite_start]Acknowledges the client's progress and successes[cite: 132].
-- 8.09. [cite_start]Partners with the client to close the session[cite: 133].
+- 8.01. Works with the client to integrate new awareness into their worldview.
+- 8.02. Partners to design goals, actions and accountability measures.
+- 8.03. Acknowledges and supports client autonomy in the design of accountability.
+- 8.05. Invites the client to consider resources, support and potential barriers.
+- 8.08. Acknowledges the client's progress and successes.
+- 8.09. Partners with the client to close the session.
 
 Grading Logic:
-* EXEMPLARY: The coach allows the client to completely design their own accountability (8.03) and thoroughly explores potential barriers and support systems (8.05).
-* PROFICIENT: The coach partners to design actions (8.02) and captures learning (8.01), summarizing well at the close (8.09).
-* NEEDS DEVELOPMENT: The coach assigns homework, prescribes the action steps, or abruptly ends the session without securing commitment or capturing learning.
+* EXEMPLARY: The coach allows the client to completely design their own actions and accountability (8.03) and thoroughly explores potential barriers and support systems (8.05).
+* PROFICIENT: The coach successfully partners to design action steps (8.02) and captures the learning from the session (8.01), summarizing well at the close (8.09).
+* SUFFICIENT: The coach attempts to close the session and establish next steps, but does so in a slightly rushed or coach-led manner.
+* NEEDS DEVELOPMENT: The coach assigns homework, prescribes the action steps for the client, or abruptly ends the session without securing commitment.
 
 --- END RUBRIC ---
 `;

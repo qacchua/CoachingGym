@@ -51,10 +51,31 @@ function App() {
         unsubscribeSnapshot = onSnapshot(userRef, (userSnap) => {
           if (userSnap.exists()) {
             const userData = userSnap.data();
+            // --- NEW: Retroactive Patch for Existing Users ---
+            // If they are an old user missing the gamification fields, patch them silently!
+            if (!userData.tracks) {
+              setDoc(userRef, {
+                activeTrack: 'icf_coach',
+                globalStreak: 0,
+                tracks: {
+                  icf_coach: { xp: 0, practiceHours: 0 }
+                }
+              }, { merge: true }); 
+            }
+            // -------------------------------------------------
+
             setCurrentUser({ ...user, ...userData });
             
             // Evaluates if their 7-day trial or paid subscription is still active
             setIsPremium(userData.premiumExpires?.toDate() > new Date());
+            
+            // --- NEW: Forced Onboarding Check ---
+            // If the user doesn't have a displayName set, force them to the profile page.
+            // Using a functional state update prevents the window from scrolling to top on every keystroke if they are editing.
+            if (!userData.displayName) {
+              setView((prevView) => prevView !== 'profile' ? 'profile' : prevView);
+            }
+
             setLoading(false);
           } else {
             // Grants 7-day trial to brand new users
@@ -64,7 +85,22 @@ function App() {
               email: user.email, 
               joined: serverTimestamp(),
               tier: 'Trial',
-              premiumExpires: trialExpires 
+              premiumExpires: trialExpires,
+              
+              // --- NEW: GAMIFICATION SKELETON ---
+              activeTrack: 'icf_coach',
+              globalStreak: 0,
+              tracks: {
+                icf_coach: {
+                  xp: 0,
+                  practiceHours: 0
+                }
+              }
+              // ----------------------------------
+              
+            }).then(() => {
+              // Once the initial document is created, force them to the profile page
+              setView('profile');
             });
           }
         }, () => setLoading(false));
@@ -84,7 +120,8 @@ function App() {
   const handleSetView = (newView, params = null) => {
     if (newView === 'logout') { signOut(auth); return; }
     setView(newView);
-    if (params) setViewParams(params);
+    // --- FIX: Properly clear old view parameters if none are passed ---
+    setViewParams(params || null); 
     window.scrollTo(0, 0);
   };
 
@@ -121,8 +158,12 @@ function App() {
                   
                 case 'profile': 
                   return <Profile currentUser={currentUser} setView={handleSetView} />;
+                
+                // --- FIX: Added alias and fallback UID ---
                 case 'publicProfile': 
-                  return <PublicProfile setView={handleSetView} uid={viewParams?.uid} />;
+                case 'public-profile':
+                  return <PublicProfile setView={handleSetView} uid={viewParams?.uid || currentUser.uid} />;
+                
                 case 'privacy': 
                   return <PrivacyPolicy setView={handleSetView} uid={viewParams?.uid} />;
                 case 'terms': 
