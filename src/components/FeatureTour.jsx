@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-// Using the named export to keep Vite happy based on your previous fix!
 import { Joyride, STATUS } from 'react-joyride';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 const FeatureTour = ({ currentUser }) => {
   const [runTour, setRunTour] = useState(false);
 
-  // Expanded tour steps mapping to all core features
   const steps = [
     {
       target: 'body',
@@ -62,59 +60,44 @@ const FeatureTour = ({ currentUser }) => {
   ];
 
   useEffect(() => {
-    const checkTourStatus = async () => {
-      if (!currentUser) return;
+    if (!currentUser) return;
 
-      // 1. Lightning-fast local check (prevents the tour from flashing on reload)
-      const localCheck = localStorage.getItem(`hasSeenTour_${currentUser.uid}`);
-      if (localCheck === 'true') {
-        setRunTour(false);
-        return;
-      }
+    const localKey = `hasSeenTour_${currentUser.uid}`;
 
-      // 2. Database check (uses the EXACT SAME path as the Gamification Wallet)
-      try {
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid);
-        const userSnap = await getDoc(userRef);
+    // 1. If the database already knows they've seen it, abort.
+    if (currentUser.hasSeenTour) {
+      setRunTour(false);
+      return;
+    }
 
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          if (!userData.hasSeenTour) {
-            setRunTour(true);
-          }
-        } else {
-          // Brand new user
-          setRunTour(true);
-        }
-      } catch (error) {
-        console.error("Error checking tour status:", error);
-      }
-    };
+    // 2. Lightning-fast local browser check (fallback)
+    if (localStorage.getItem(localKey) === 'true') {
+      setRunTour(false);
+      return;
+    }
 
-    checkTourStatus();
-  }, [currentUser]);
+    // THE FIX: If they are a new user, start the tour AND instantly stamp the flags.
+    // This guarantees it won't run again if they click a button and navigate away mid-tour!
+    setRunTour(true);
+    localStorage.setItem(localKey, 'true');
 
-  const handleJoyrideCallback = async (data) => {
-    const { status } = data;
+    try {
+      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+      const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid);
+      // We use fire-and-forget here so it doesn't block the UI
+      setDoc(userRef, { hasSeenTour: true }, { merge: true }).catch(e => console.error(e));
+    } catch (error) {
+      console.error("Error setting DB tour flag:", error);
+    }
+
+  }, [currentUser.hasSeenTour, currentUser.uid]); 
+
+  // We keep the callback just to gracefully stop the tour engine if they hit Skip/Done
+  const handleJoyrideCallback = (data) => {
+    const { status, action } = data;
     const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
-
-    if (finishedStatuses.includes(status)) {
+    if (finishedStatuses.includes(status) || action === 'close') {
       setRunTour(false); 
-      
-      if (currentUser) {
-        // 1. Save to local storage instantly
-        localStorage.setItem(`hasSeenTour_${currentUser.uid}`, 'true');
-
-        // 2. Save to the correct database path
-        try {
-          const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-          const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid);
-          await setDoc(userRef, { hasSeenTour: true }, { merge: true });
-        } catch (error) {
-          console.error("Error updating tour status in DB:", error);
-        }
-      }
     }
   };
 

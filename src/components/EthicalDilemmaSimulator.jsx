@@ -7,7 +7,6 @@ import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
 import IconWrapper from './IconWrapper';
 import { callGeminiAPI } from '../utils/api';
-// --- UPDATED IMPORTS: Added updateDoc, increment, and serverTimestamp ---
 import { 
   collection, 
   addDoc, 
@@ -21,7 +20,7 @@ import {
 } from "firebase/firestore"; 
 import { db } from '../firebaseConfig.js';
 import {icfEthicsRubric2025} from '../utils/rubrics';
-// --- NEW IMPORT: Gamification Engine ---
+// --- Gamification Engine ---
 import { calculateSessionXP, calculateNewStreak } from '../utils/gamificationEngine';
 
 // These are now just a fallback in case firestore is empty
@@ -208,23 +207,36 @@ const EthicalDilemmaSimulator = ({ setView, currentUser }) => {
       setFeedback(result);
       setFlowStep('feedback');
 
-      // --- GAMIFICATION ENGINE HOOK ---
-      // Only award points if they haven't solved this specific dilemma before
+      // --- GAMIFICATION ENGINE HOOK & DASHBOARD RECEIPT ---
       if (isNewSolution) {
           const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
           const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid);
           const userSnap = await getDoc(userRef);
 
+          let currentStreak = 0;
+          let lastActivityDate = null;
+          let earnedXP = 0;
+          let newStreak = 0;
+
           if (userSnap.exists()) {
               const userData = userSnap.data();
-              const currentStreak = userData.globalStreak || 0;
-              const lastActivityDate = userData.lastActivityDate || null;
+              currentStreak = userData.globalStreak || 0;
+              lastActivityDate = userData.lastActivityDate || null;
 
               // Calculate engine values
-              const newStreak = calculateNewStreak(lastActivityDate, currentStreak);
-              const earnedXP = calculateSessionXP({ type: 'Dilemma' }, currentStreak);
+              newStreak = calculateNewStreak(lastActivityDate, currentStreak);
+              earnedXP = calculateSessionXP({ type: 'Dilemma' }, currentStreak);
 
-              // Increment points safely
+              // 1. SAVE THE RECEIPT FIRST (with earnedXP!)
+              await addDoc(collection(db, 'users', currentUser.uid, 'dashboardItems'), {
+                  type: 'Ethical Dilemma',
+                  title: currentDilemma.title,
+                  scenario: currentDilemma.scenario,
+                  earnedXP: earnedXP, // THE FIX: Injecting the calculated XP here
+                  savedAt: serverTimestamp(),
+              });
+
+              // 2. INCREMENT THE GLOBAL WALLET
               await updateDoc(userRef, {
                   "tracks.icf_coach.xp": increment(earnedXP),
                   "globalStreak": newStreak,

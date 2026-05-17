@@ -6,7 +6,7 @@ import { db } from '../firebaseConfig';
 import Card from './Card';
 import Button from './Button';
 import IconWrapper from './IconWrapper';
-// --- NEW IMPORT: Gamification Engine ---
+// --- Gamification Engine ---
 import { calculateSessionXP, calculateNewStreak } from '../utils/gamificationEngine';
 
 // --- DATA (Keep this at the top of the file) ---
@@ -98,7 +98,7 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
     const [score, setScore] = useState(0);
     const [competencyAnalysis, setCompetencyAnalysis] = useState({});
     
-    // --- NEW STATE FOR SAVING ---
+    // --- STATE FOR SAVING ---
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState(null); 
     
@@ -276,37 +276,44 @@ const QuizComponent = ({ setView, currentUser, isPremium }) => {
         try {
             const percentage = Math.round((score / questions.length) * 100);
             
-            // 1. Existing Logic: Save to the Dashboard Items subcollection
+            // 1. Fetch User Data to Calculate Math FIRST
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid);
+            const userSnap = await getDoc(userRef);
+            
+            let currentStreak = 0;
+            let lastActivityDate = null;
+            let earnedXP = 0;
+            let newStreak = 0;
+
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                currentStreak = userData.globalStreak || 0;
+                lastActivityDate = userData.lastActivityDate || null;
+
+                // Calculate engine values
+                newStreak = calculateNewStreak(lastActivityDate, currentStreak);
+                earnedXP = calculateSessionXP({ 
+                    type: 'Quiz', 
+                    percentage: percentage, 
+                    totalQuestions: questions.length 
+                }, currentStreak);
+            }
+
+            // 2. Save to the Dashboard Items subcollection WITH the earnedXP injected!
             await addDoc(collection(db, 'users', currentUser.uid, 'dashboardItems'), {
                 type: 'Quiz',
                 title: quizMode === 'competency' ? `Quiz: ${currentCompetency}` : 'ICF Competency Quiz',
                 score: `${score} / ${questions.length}`,
                 percentage: percentage,
+                earnedXP: earnedXP, // THE FIX: Now saving the calculated XP to the receipt
                 savedAt: serverTimestamp(),
                 quizMode: quizMode,
                 totalQuestions: questions.length
             });
 
-            // 2. New Logic: Process Gamification Wallet
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            // Pointing directly to the Gamification Wallet initialized in App.jsx
-            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid);
-            
-            const userSnap = await getDoc(userRef);
+            // 3. Update the Global Gamification Wallet
             if (userSnap.exists()) {
-                const userData = userSnap.data();
-                const currentStreak = userData.globalStreak || 0;
-                const lastActivityDate = userData.lastActivityDate || null;
-
-                // Calculate engine values
-                const newStreak = calculateNewStreak(lastActivityDate, currentStreak);
-                const earnedXP = calculateSessionXP({ 
-                    type: 'Quiz', 
-                    percentage: percentage, 
-                    totalQuestions: questions.length 
-                }, currentStreak);
-
-                // Increment points safely
                 await updateDoc(userRef, {
                     "tracks.icf_coach.xp": increment(earnedXP),
                     "globalStreak": newStreak,
