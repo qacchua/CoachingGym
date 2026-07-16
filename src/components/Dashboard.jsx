@@ -4,7 +4,7 @@ import { db } from '../firebaseConfig.js';
 import Card from './Card';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
-import { BookOpenCheck, FileText, HelpCircle, Bookmark, Lock, BarChart3, Trophy, Flame, Zap, Target, Info, X, Bot, Scale, CheckSquare } from 'lucide-react';
+import { BookOpenCheck, FileText, HelpCircle, Bookmark, Lock, BarChart3, Trophy, Flame, Zap, Target, Info, X, Bot, Scale, CheckSquare, ShieldCheck } from 'lucide-react';
 import { getUserStatus, getNextTierRequirement, getStreakMultiplier, STATUS_TIERS } from '../utils/gamificationEngine';
 
 const Dashboard = ({ setView, currentUser, setEvaluationResult, isPremium }) => {
@@ -62,8 +62,11 @@ const Dashboard = ({ setView, currentUser, setEvaluationResult, isPremium }) => 
     return new Date(timestamp.seconds * 1000).toLocaleDateString();
   };
 
-  const getIcon = (type) => {
-    switch(type) {
+  // Check the specific item to see if it's a mock exam, otherwise fall back to standard types
+  const getIcon = (item) => {
+    if (item.quizMode === 'mock_exam') return <ShieldCheck className="w-5 h-5 text-indigo-600" />;
+    
+    switch(item.type) {
       case 'Quiz': return <BookOpenCheck className="w-5 h-5 text-blue-500" />;
       case 'Evaluation Report': return <FileText className="w-5 h-5 text-purple-500" />;
       case 'Ethical Dilemma': return <HelpCircle className="w-5 h-5 text-amber-500" />;
@@ -179,7 +182,7 @@ const Dashboard = ({ setView, currentUser, setEvaluationResult, isPremium }) => 
                   
                   <div className="flex items-start gap-5">
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group-hover:bg-rose-50 group-hover:border-rose-100 transition-colors">
-                      {getIcon(item.type)}
+                      {getIcon(item)}
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-800 text-base mb-1">{item.title || item.type}</h3>
@@ -277,26 +280,32 @@ const Dashboard = ({ setView, currentUser, setEvaluationResult, isPremium }) => 
                 </div>
               </div>
 
-              {/* Knowledge Checks */}
+              {/* Knowledge Checks & Mock Exams */}
               <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                 <h3 className="font-black text-slate-800 uppercase tracking-wide flex items-center gap-2 mb-3">
-                  <CheckSquare className="w-5 h-5 text-blue-500" /> Knowledge Checks (Quizzes)
+                  <CheckSquare className="w-5 h-5 text-blue-500" /> Knowledge Checks & Exams
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-700">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-slate-700">
                   <div>
-                    <h4 className="font-black text-slate-900 mb-2">Short Quizzes (&le;20 Qs)</h4>
+                    <h4 className="font-black text-slate-900 mb-2">Short Quizzes</h4>
                     <ul className="space-y-1">
                       <li className="flex justify-between"><span>Score &ge; 80%</span> <span className="font-black text-emerald-600">+3 XP</span></li>
                       <li className="flex justify-between"><span>Score &lt; 80%</span> <span className="font-black text-emerald-600">+1 XP</span></li>
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-black text-slate-900 mb-2">Long Quizzes (&gt;20 Qs)</h4>
+                    <h4 className="font-black text-slate-900 mb-2">Long Quizzes</h4>
                     <ul className="space-y-1">
                       <li className="flex justify-between"><span>Score &ge; 80%</span> <span className="font-black text-emerald-600">+9 XP</span></li>
-                      <li className="flex justify-between"><span>Score 70% - 79%</span> <span className="font-black text-emerald-600">+5 XP</span></li>
-                      <li className="flex justify-between"><span>Score 60% - 69%</span> <span className="font-black text-emerald-600">+3 XP</span></li>
+                      <li className="flex justify-between"><span>Score 60-79%</span> <span className="font-black text-emerald-600">+3-5 XP</span></li>
                       <li className="flex justify-between"><span>Score &lt; 60%</span> <span className="font-black text-emerald-600">+1 XP</span></li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 mb-2">ICF Mock Exams</h4>
+                    <ul className="space-y-1">
+                      <li className="flex justify-between"><span>Guaranteed Min.</span> <span className="font-black text-emerald-600">25 XP</span></li>
+                      <li className="text-xs text-slate-500 mt-2 leading-tight">Scales higher with passing scores and daily streak multipliers!</li>
                     </ul>
                   </div>
                 </div>
@@ -320,7 +329,7 @@ const Dashboard = ({ setView, currentUser, setEvaluationResult, isPremium }) => 
             </div>
             
             <Button onClick={() => setShowXPGuide(false)} className="w-full mt-8 bg-slate-900 text-white py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-800">
-              Got it, let's play
+              Got it, let's coach!
             </Button>
           </div>
         </div>

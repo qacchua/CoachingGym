@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Mic, FileText, Scale, Users, CheckSquare, Lock, Crown, Trophy, Flame, Target } from 'lucide-react';
+import { Bot, Mic, FileText, Scale, Users, CheckSquare, Lock, Crown, Trophy, Flame, Target, ShieldCheck } from 'lucide-react';
 import Card from './Card';
 import FeatureTour from './FeatureTour';
 // --- NEW IMPORTS: Firebase and Gamification Engine ---
@@ -52,6 +52,17 @@ const HomePage = ({ setView, currentUser, isPremium }) => {
             premiumOnly: false, // FREE
             color: 'text-blue-600',
             bg: 'bg-blue-100'
+        },
+        // --- NEW: ACC Mock Exam ---
+        {
+            id: 'mockExam',
+            title: 'ACC Mock Exam',
+            description: 'Take a 90-minute simulated ACC exam to test your credentialing readiness.',
+            icon: ShieldCheck,
+            view: 'mockExam',
+            premiumOnly: true, // PREMIUM
+            color: 'text-indigo-700',
+            bg: 'bg-indigo-100'
         },
         {
             id: 'simulation',
@@ -170,6 +181,8 @@ const HomePage = ({ setView, currentUser, isPremium }) => {
                     let tourClass = '';
                     if (feature.id === 'community') tourClass = 'tour-community';
                     if (feature.id === 'quiz') tourClass = 'tour-quiz';
+                    // --- NEW: Tour class for Mock Exam ---
+                    if (feature.id === 'mockExam') tourClass = 'tour-mock-exam';
                     if (feature.id === 'simulation') tourClass = 'tour-simulation';
                     if (feature.id === 'voiceSimulation') tourClass = 'tour-voice-studio';
                     if (feature.id === 'transcript') tourClass = 'tour-transcript';

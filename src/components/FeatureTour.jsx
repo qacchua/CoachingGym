@@ -28,6 +28,11 @@ const FeatureTour = ({ currentUser }) => {
       placement: 'bottom',
     },
     {
+    target: '.tour-mock-exam',
+    content: 'Test your readiness for the real thing with a strict 90-minute ACC Mock Exam.',
+    placement: 'bottom',
+    },
+    {
       target: '.tour-simulation',
       content: 'Text Studio: Practice deliberate text-based coaching AI personas and receive feedback based on the ICF 2025 core competencies',
       placement: 'bottom',

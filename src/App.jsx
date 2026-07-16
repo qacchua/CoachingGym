@@ -23,6 +23,7 @@ import PaymentSuccess from './components/PaymentSuccess';
 import LoadingSpinner from './components/LoadingSpinner';
 import EvaluationResult from './components/EvaluationResult';
 import Footer from './components/Footer';
+import MockExamComponent from './components/MockExamComponent';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -191,6 +192,10 @@ function App() {
                 case 'voiceSimulation': 
                   return isPremium ? <VoiceSimulation setView={handleSetView} currentUser={currentUser} setEvaluationResult={setEvaluationResult} /> : <PricingPage setView={handleSetView} currentUser={currentUser} />;
                 
+                //Added mockExam option
+                case 'mockExam':
+                  return isPremium ? <MockExamComponent setView={handleSetView} currentUser={currentUser} isPremium={isPremium} /> : <PricingPage setView={handleSetView} currentUser={currentUser} />;
+
                 default: 
                   return <HomePage setView={handleSetView} currentUser={currentUser} isPremium={isPremium} />;
               }
